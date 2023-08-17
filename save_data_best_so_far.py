@@ -160,7 +160,9 @@ if __name__ == "__main__":
         "DBO",
         "Random Search"
     ]
-    test_her_functions = [("HER", 10)]
+    test_her_functions = [
+        ("HER", 10)
+        ]
 
     test_synthetic_functions = [
         ("Branin", 2),
