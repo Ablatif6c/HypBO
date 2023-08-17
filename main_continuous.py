@@ -4,7 +4,7 @@ from typing import List
 
 import numpy as np
 
-from bo.bayes_opt.bayesian_optimization import BayesianOptimization
+from DBO.bayes_opt.bayesian_optimization import BayesianOptimization
 from hbo import HBO
 from lamcts.lamcts.MCTS import MCTS
 from test_hypotheses import get_function, get_scenarios, get_scenarios_name

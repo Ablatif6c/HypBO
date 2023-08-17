@@ -4,7 +4,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from bo.bayes_opt.util import (ensure_rng, get_rnd_quantities,
+from DBO.bayes_opt.util import (ensure_rng, get_rnd_quantities,
                                get_rng_complement)
 
 

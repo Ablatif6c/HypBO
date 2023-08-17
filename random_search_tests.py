@@ -4,7 +4,7 @@ from multiprocessing import Process
 
 import numpy as np
 
-from random_search import RandomOptimizer
+from random_search.random_search import RandomOptimizer
 from test_hypotheses import get_function
 
 # Initialize parser

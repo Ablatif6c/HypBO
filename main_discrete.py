@@ -1,7 +1,7 @@
 import argparse
 from multiprocessing import Process
 
-from bo.bayes_opt.bayesian_optimization import DiscreteBayesianOptimization
+from DBO.bayes_opt.bayesian_optimization import DiscreteBayesianOptimization
 from hbo import HBO
 from test_hypotheses import get_function, get_scenarios, get_scenarios_name
 
@@ -114,7 +114,7 @@ def multiprocess_her_experiment():
     print(f"Processing HER... seed: {seed}")
     scenarios_list = get_scenarios(func_name="HER")
     processes = []
-    for scenarios in scenarios_list:
+    for scenarios in scenarios_list[:1]:
         process = Process(
                     target=run_scenario,
                     args=(scenarios, seed),
