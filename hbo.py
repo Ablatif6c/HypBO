@@ -1,5 +1,3 @@
-# TODO docstring
-
 import os
 import warnings
 from copy import deepcopy

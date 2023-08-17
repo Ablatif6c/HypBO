@@ -145,38 +145,3 @@ class Hypothesis:
 
     def clear_samples(self):
         self.samples = []
-
-
-if __name__ == "__main__":
-    dim = 10
-    lb = np.full(dim, 0, dtype=float)
-    ub = np.full(dim, 5, dtype=float)
-
-    coeff_equalities = None
-    const_equalities = None
-
-    coeff_inequalities = [
-        [0, 0,  0,  0, 0, -1, 0,  0,  0,  0, ],
-        [0, 0,  -1,  -1, -1, 0, 0,  0,  0,  0, ],
-        [1, 1,  1,  1,  1,  0,  1,  1,  1,  1, ],
-    ]
-
-    coeff_inequalities = np.array(coeff_inequalities)
-
-    const_inequalities = [
-        -3.5,
-        -3,
-        5,
-    ]
-    const_inequalities = np.array(const_inequalities)
-
-    conj = Hypothesis(
-        feature_names=["L-Cysteine-50gL", "NaCl-3M", "NaOH-1M", "PVP-1wt", "SDS-1wt", "Sodiumsilicate-1wt", "AcidRed871_0gL", "RhodamineB1_0gL", "MethyleneB_250mgL"],
-        lb=lb,
-        ub=ub,
-        coeff_inequalities=coeff_inequalities,
-        const_inequalities=const_inequalities,
-        coeff_equalities=coeff_equalities,
-        const_equalities=const_equalities,
-    )
-    print(conj.sol_bounds)

@@ -418,7 +418,7 @@ def __get_HER_scenarios():
     )
 
     # ---------------------------------------- Scenario 3: Dye-sceptic
-    name = "Dye-sceptic"
+    name = "Dye Sceptic"
     coeff_equalities = np.array(
         [
             [0, 0,  1,  0, 0, 0,   0,  0,  0,  0, ],    # MB = 0
@@ -453,7 +453,7 @@ def __get_HER_scenarios():
     )
 
     # ------------------------------------- Scenario 4: Dye-advocate
-    name = "Dye-advocate"
+    name = "Dye Fanatic"
     coeff_equalities = None
     const_equalities = None
 
@@ -477,7 +477,7 @@ def __get_HER_scenarios():
     )
 
     # ------------------------------------- Scenario 5: AR87-advocate
-    name = "AR87-advocate"
+    name = "AR87 Obsessed"
     coeff_equalities = None
     const_equalities = None
 
@@ -509,7 +509,7 @@ def __get_HER_scenarios():
     )
 
     # ----------------------------------- Scenario 6: Surfactant-sceptic
-    name = "Surfactant-sceptic"
+    name = "Surfactant Sceptic"
     coeff_equalities = np.array(
         [
             [0, 0,  0,  0, 0, 0,   0,  0,  1,  0, ],    # SDS = 0
@@ -541,7 +541,7 @@ def __get_HER_scenarios():
     )
 
     # ---------------------------------- Scenario 7: Scavenger-Obsessive
-    name = "Scavenger-Obsessive"
+    name = "Scavenger Obsessive"
     coeff_equalities = None
     const_equalities = None
 
@@ -565,7 +565,7 @@ def __get_HER_scenarios():
     )
 
     # --------------------------------------- Scenario 8: pH-Obsessive
-    name = "pH-Obsessive"
+    name = "pH Fanatic"
     coeff_equalities = None
     const_equalities = None
 
@@ -589,7 +589,7 @@ def __get_HER_scenarios():
     )
 
     # -------------------------------- Scenario 9: H-bonding Obsessive
-    name = "H-bonding Obsessive"
+    name = "H-bond Lover"
     coeff_equalities = None
     const_equalities = None
 

@@ -163,12 +163,12 @@ if __name__ == "__main__":
     test_her_functions = [("HER", 10)]
 
     test_synthetic_functions = [
-        # ("Branin", 2),
-        # ("Sphere", 2),
-        # ("Ackley", 5),
-        # ("Ackley", 9),
-        # ("Rosenbrock", 14),
-        # ("Levy", 20),
+        ("Branin", 2),
+        ("Sphere", 2),
+        ("Ackley", 5),
+        ("Ackley", 9),
+        ("Rosenbrock", 14),
+        ("Levy", 20),
         ]
 
     all_functions(

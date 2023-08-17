@@ -18,7 +18,7 @@ class HER:
         path = os.path.join(
             "resources",
             "functions",
-            "nature",
+            "Burger et al. 2020",
             "virtual_models",
             "virtual_model_combined.pkl",
         )

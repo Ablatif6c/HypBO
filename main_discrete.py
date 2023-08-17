@@ -114,7 +114,7 @@ def multiprocess_her_experiment():
     print(f"Processing HER... seed: {seed}")
     scenarios_list = get_scenarios(func_name="HER")
     processes = []
-    for scenarios in scenarios_list[-1:]:
+    for scenarios in scenarios_list:
         process = Process(
                     target=run_scenario,
                     args=(scenarios, seed),
