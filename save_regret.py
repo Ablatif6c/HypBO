@@ -2,8 +2,7 @@ import os
 from typing import List
 
 import pandas as pd
-
-from test_hypotheses import get_scenarios, get_scenarios_name
+from test_hypotheses import get_scenario_name, get_scenarios
 
 
 def save_regrets(
@@ -20,40 +19,42 @@ def save_regrets(
     for func_name in func_names:
         # Get avg regret
         path = os.path.join(
-                    dir_name,
-                    func_name,
-                    f"{func_name}_average.csv",)
+            dir_name,
+            func_name,
+            f"{func_name}_average.csv",)
         df_func = pd.read_csv(path).head(n=n)
         df_func = df_func.drop(df_func.columns[0], axis=1)
+        df_func = df_func.reindex(columns=scenario_names)   # Reorder columns
         row_avg = df_func.iloc[-1]
         row_cum_avg = df_func.sum(axis=0)
 
         # Get std regret
         path = os.path.join(
-                    dir_name,
-                    func_name,
-                    f"{func_name}_std.csv",)
+            dir_name,
+            func_name,
+            f"{func_name}_std.csv",)
         df_func = pd.read_csv(path).head(n=n)
         df_func = df_func.drop(df_func.columns[0], axis=1)
+        df_func = df_func.reindex(columns=scenario_names)   # Reorder columns
         row_std = df_func.iloc[-1]/2
         row_cum_std = df_func.sum(axis=0)/2
 
         # Get avg regret - Random Search
         path = os.path.join(
-                    dir_name,
-                    "Random Search",
-                    func_name,
-                    f"{func_name}_average.csv",)
+            dir_name,
+            "Random Search",
+            func_name,
+            f"{func_name}_average.csv",)
         df_func = pd.read_csv(path).head(n=n)
         rand_avg = df_func.loc[:, "No Hypothesis"].iloc[-1]
         rand_cum_avg = df_func.loc[:, "No Hypothesis"].sum(axis=0)
 
         # Get std regret
         path = os.path.join(
-                    dir_name,
-                    "Random Search",
-                    func_name,
-                    f"{func_name}_std.csv",)
+            dir_name,
+            "Random Search",
+            func_name,
+            f"{func_name}_std.csv",)
         df_func = pd.read_csv(path).head(n=n)
         rand_std = df_func.loc[:, "No Hypothesis"].iloc[-1]/2
         rand_cum_std = df_func.loc[:, "No Hypothesis"].sum(axis=0)/2
@@ -93,18 +94,18 @@ def save_regrets(
         df_cum_regret = df_cum_regret.append(row_cum)
 
     regret_file_path = os.path.join(
-                            dir_name,
-                            f"regret_{'-'.join(func_names)}.csv",)
+        dir_name,
+        f"regret_{'-'.join(func_names)}.csv",)
     df_regret.to_csv(regret_file_path)
     print(f"Regret data generated and saved in {regret_file_path}")
 
     cum_regret_file_path = os.path.join(
-                            dir_name,
-                            f"cum_regret_{'-'.join(func_names)}.csv",)
+        dir_name,
+        f"cum_regret_{'-'.join(func_names)}.csv",)
     df_cum_regret.to_csv(cum_regret_file_path)
     print(
         f"Cumulative regret data generated and saved in {cum_regret_file_path}"
-        )
+    )
 
 
 if __name__ == "__main__":
@@ -120,12 +121,12 @@ if __name__ == "__main__":
     ]
 
     scenarios_list = get_scenarios(
-            func_name=func_names[0].split('_')[0],
-            dim=int(func_names[0].split('_')[1][1:]),
-            )
+        func_name=func_names[0].split('_')[0],
+        dim=int(func_names[0].split('_')[1][1:]),
+    )
     scenario_names = [
-        get_scenarios_name(scenarios) for scenarios in scenarios_list
-        ]
+        get_scenario_name(scenarios) for scenarios in scenarios_list
+    ]
 
     save_regrets(
         func_names=func_names,

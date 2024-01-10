@@ -80,7 +80,7 @@ class Hypothesis:
             # max = opposite of value of -feature
             sol_ub = np.append(sol_ub, -res.fun)
 
-        if sol_lb == np.array([]) or sol_ub == np.array([]):
+        if np.array_equal(sol_lb, np.array([])) or np.array_equal(sol_ub, np.array([])):
             return None, None
 
         return sol_lb, sol_ub

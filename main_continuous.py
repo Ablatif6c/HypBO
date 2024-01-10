@@ -1,13 +1,11 @@
 import argparse
+import os
 from multiprocessing import Process
 from typing import List
 
-import numpy as np
-
 from DBO.bayes_opt.bayesian_optimization import BayesianOptimization
-from hbo import HBO
-from lamcts.lamcts.MCTS import MCTS
-from test_hypotheses import get_function, get_scenarios, get_scenarios_name
+from hypbo import HypBO
+from test_hypotheses import get_function, get_scenario_name, get_scenarios
 
 # Initialize parser
 parser = argparse.ArgumentParser()
@@ -22,29 +20,13 @@ parser.add_argument(
     const="Ackley",
     default="Ackley")
 parser.add_argument(
-    "-ds",
-    "--dim_start",
+    "-d",
+    "--dim",
     help="Starting dimension",
     nargs='?',
     type=int,
     const=5,
     default=5)
-parser.add_argument(
-    "-de",
-    "--dim_end",
-    help="Ending dimension",
-    nargs='?',
-    type=int,
-    const=6,
-    default=6)
-parser.add_argument(
-    "-dstep",
-    "--dim_step",
-    help="Dimension step",
-    nargs='?',
-    type=int,
-    const=1,
-    default=1)
 parser.add_argument(
     "-ss",
     "--seed_start",
@@ -62,14 +44,6 @@ parser.add_argument(
     const=5,
     default=5)
 parser.add_argument(
-    "-b",
-    "--budget",
-    help="Budget",
-    nargs='?',
-    type=int,
-    const=100,
-    default=100)
-parser.add_argument(
     "-n",
     "--n_init",
     help="Initialization number",
@@ -77,6 +51,14 @@ parser.add_argument(
     type=int,
     const=5,
     default=5)
+parser.add_argument(
+    "-b",
+    "--budget",
+    help="Budget",
+    nargs='?',
+    type=int,
+    const=100,
+    default=100)
 parser.add_argument(
     "-bc",
     "--batch",
@@ -88,11 +70,35 @@ parser.add_argument(
 parser.add_argument(
     "-np",
     "--n_processes",
-    help="Number of rocesses",
+    help="Number of processes",
     nargs='?',
     type=int,
     const=10,
     default=10)
+parser.add_argument(
+    "-g",
+    "--global_limit",
+    help="Global failure limit",
+    nargs='?',
+    type=int,
+    const=5,
+    default=5)
+parser.add_argument(
+    "-l",
+    "--local_limit",
+    help="Local failure limit",
+    nargs='?',
+    type=int,
+    const=2,
+    default=2)
+parser.add_argument(
+    "-a",
+    "--ablation_studies",
+    help="Is this an ablation study",
+    nargs='?',
+    type=bool,
+    const=True,
+    default=True)
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -103,86 +109,96 @@ n_init = args.n_init
 batch = args.batch
 n_processes = args.n_processes
 func_name = args.func_name
-dim_start = args.dim_start
-dim_end = args.dim_end
-dim_step = args.dim_step
+dim = args.dim
+ablation_studies = args.ablation_studies
+global_limit = args.global_limit
+local_limit = args.local_limit
 
 
-def run_scenario(
-            func,
-            scenarios: List = [],
-            seed: int = 0,
-          ):
-    scenario_name = get_scenarios_name(scenarios=scenarios)
+def run_hypbo(
+    func,
+    scenarios: List = [],
+    seed: int = 0,
+):
+    scenario_name = get_scenario_name(hypotheses=scenarios)
     print(f"--------------- Scenario: {scenario_name}\
                 \t Seed: {seed}/{seed_start + seed_count-1}")
     # Params
     pbounds = func.bound
     feature_names = list(pbounds.keys())
     model_kwargs = {
-                    "pbounds": pbounds,
-                    "random_seed": seed,
-                    "func": None,
-                    }
-    hbo = HBO(
+        "pbounds": pbounds,
+        "random_seed": seed,
+        # "func": None,
+    }
+
+    # Create hypbo with the params and do the search.
+    print(f"Global vs. Local: {global_limit} vs. {local_limit}")
+    hypbo = HypBO(
         func=func,
         feature_names=feature_names,
-        model=MCTS,
+        model=BayesianOptimization,
         model_kwargs=model_kwargs,
-        conjs=scenarios,
+        hypotheses=scenarios,
         seed=seed,
         n_processes=n_processes,
         discretization=False,
+        global_failire_limit=global_limit,
+        local_failure_limit=local_limit
     )
-    hbo.search(
+    hypbo.search(
         budget=budget,
         n_init=n_init,
         batch=batch,
     )
-    hbo.save_data(
+
+    # Get the folder path to save the data.
+    folder_path = os.path.join(
+        "data",
+        "HypBO",
+    )
+    if ablation_studies:
+        folder_path = os.path.join(
+            folder_path,
+            "Ablation Studies",
+            f"g{global_limit}_l{local_limit}")
+
+    # Save the data.
+    hypbo.save_data(
         func_name=f"{func.name}_d{func.dim}",
         scenario_name=scenario_name,
-        seed=seed,)
+        seed=seed,
+        folder_path=folder_path)
 
 
-def multiprocess_math_experiment(
+def multiprocess_synthetic_experiment(
         func_name: str,
-        dim_start: int = 0,
-        dim_end: int = 0,
-        dim_step: int = 1):
+        dim: int = 0):
     print(f"Processing {func_name}...")
-    for d in range(dim_start, dim_end, dim_step):
-        # Get function from name
-        func = get_function(
-            dim=d,
-            name=func_name,
-        )
 
-        for seed in range(seed_start, seed_start + seed_count):
-            scenarios_list = get_scenarios(
-                func_name=func_name,
-                dim=d)
-            scenarios_chunks = np.array_split(
-                scenarios_list,
-                3)
-            for chunk in scenarios_chunks:
-                processes = []
-                for scenarios in chunk:
-                    process = Process(
-                                target=run_scenario,
-                                args=(func, scenarios, seed),
-                                )
-                    process.start()
-                    processes.append(process)
+    func = get_function(
+        dim=dim,
+        name=func_name,
+    )
+    hypotheses = get_scenarios(
+        func_name=func_name,
+        dim=dim)
+    for seed in range(seed_start, seed_start + seed_count):
+        processes = []
+        for hypothesis in hypotheses:
+            process = Process(
+                target=run_hypbo,
+                args=(func, hypothesis, seed),
+            )
+            process.start()
+            processes.append(process)
 
-                for process in processes:
-                    process.join()
+        for process in processes:
+            process.join()
 
 
 if __name__ == "__main__":
-    multiprocess_math_experiment(
+    multiprocess_synthetic_experiment(
         func_name=func_name,
-        dim_start=dim_start,
-        dim_end=dim_end,
-        dim_step=dim_step,
+        dim=dim,
     )

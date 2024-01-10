@@ -2,8 +2,8 @@ import argparse
 from multiprocessing import Process
 
 from DBO.bayes_opt.bayesian_optimization import DiscreteBayesianOptimization
-from hbo import HBO
-from test_hypotheses import get_function, get_scenarios, get_scenarios_name
+from hypbo import HypBO
+from test_hypotheses import get_function, get_scenario_name, get_scenarios
 
 # Initialize parser
 parser = argparse.ArgumentParser()
@@ -62,40 +62,40 @@ func = get_function(name="HER")
 
 # Params
 pbounds = {
-            'AcidRed871_0gL': (0, 5, .25),
-            'L-Cysteine-50gL': (0, 5, .25),
-            'MethyleneB_250mgL': (0, 5, .25),
-            'NaCl-3M': (0, 5, .25),
-            'NaOH-1M': (0, 5, .25),
-            'P10-MIX1': (1, 5, 0.2,),
-            'PVP-1wt': (0, 5, .25),
-            'RhodamineB1_0gL': (0, 5, .25),
-            'SDS-1wt': (0, 5, .25),
-            'Sodiumsilicate-1wt': (0, 5, .25)}
+    'AcidRed871_0gL': (0, 5, .25),
+    'L-Cysteine-50gL': (0, 5, .25),
+    'MethyleneB_250mgL': (0, 5, .25),
+    'NaCl-3M': (0, 5, .25),
+    'NaOH-1M': (0, 5, .25),
+    'P10-MIX1': (1, 5, 0.2,),
+    'PVP-1wt': (0, 5, .25),
+    'RhodamineB1_0gL': (0, 5, .25),
+    'SDS-1wt': (0, 5, .25),
+    'Sodiumsilicate-1wt': (0, 5, .25)}
 constraints = [
-        '5 - L-Cysteine-50gL - NaCl-3M - NaOH-1M - PVP-1wt - SDS-1wt -'
-        ' Sodiumsilicate-1wt - AcidRed871_0gL - '
-        'RhodamineB1_0gL - MethyleneB_250mgL']
+    '5 - L-Cysteine-50gL - NaCl-3M - NaOH-1M - PVP-1wt - SDS-1wt -'
+    ' Sodiumsilicate-1wt - AcidRed871_0gL - '
+    'RhodamineB1_0gL - MethyleneB_250mgL']
 feature_names = list(pbounds.keys())
 
 
 def run_scenario(
-            scenarios=[],
-            seed: int = 0,
-          ):
-    scenario_name = get_scenarios_name(scenarios=scenarios)
+    scenarios=[],
+    seed: int = 0,
+):
+    scenario_name = get_scenario_name(hypotheses=scenarios)
     print(f"--------------- Scenario: {scenario_name}")
     model_kwargs = {
-                    "pbounds": pbounds,
-                    "random_seed": seed,
-                    "constraints": constraints,
-                    }
-    hbo = HBO(
+        "pbounds": pbounds,
+        "random_seed": seed,
+        "constraints": constraints,
+    }
+    hbo = HypBO(
         func=func,
         feature_names=feature_names,
         model=DiscreteBayesianOptimization,
         model_kwargs=model_kwargs,
-        conjs=scenarios,
+        hypotheses=scenarios,
         seed=seed,
         n_processes=n_processes,
     )
@@ -116,9 +116,9 @@ def multiprocess_her_experiment():
     processes = []
     for scenarios in scenarios_list[:1]:
         process = Process(
-                    target=run_scenario,
-                    args=(scenarios, seed),
-                    )
+            target=run_scenario,
+            args=(scenarios, seed),
+        )
         process.start()
         processes.append(process)
 
