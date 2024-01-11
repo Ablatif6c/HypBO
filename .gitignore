@@ -164,3 +164,6 @@ requirements_dev.txt
 .devcontainer/
 Dockerfile
 .vscode/
+data/data_analysis.dxp
+data/hypbo_and_baselines/__stat_tests.ipynb
+data/hypbo_and_baselines/conover_results.csv
