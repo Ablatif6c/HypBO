@@ -1,4 +1,4 @@
-This project has been used as a baseline to compare to HypBO. The added scripts for testing it are `save_data_best_so_far.py`, `save_regret.py`, `utils.py`, and `main.py`, as well as the folders `resources` and `outputs`.
+<span style="color:green;font-weight:bold">This project has been used as a baseline to compare to HypBO. The added scripts for testing it are `save_data_best_so_far.py`, `utils.py`, and `main.py`, as well as the folders `resources` and `outputs`.</span>
 
 # HyperMapper
 

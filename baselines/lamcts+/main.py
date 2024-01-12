@@ -50,18 +50,18 @@ def run_lamcts_init_hyp(
     output_folder = os.path.join(
         "outputs", f"{func.name}_d{func.dim}", scenario_name)
     os.makedirs(output_folder, exist_ok=True)
-    csv_filepath = os.path.join(
+    output_file = os.path.join(
         output_folder,
         f"{func.name}_{scenario_name}_{seed}_output_samples.csv"
     )
 
     agent = MCTS(
-        lb=func.problem.lb,              # the lower bound of each problem dimensions
-        ub=func.problem.ub,              # the upper bound of each problem dimensions
-        dims=func.dim,          # the problem dimensions
-        ninits=n_init,      # the number of random samples used in initializations
-        func=func,               # function object to be optimized
-        Cp=1,              # Cp for MCTS
+        lb=func.problem.lb,  # the lower bound of each problem dimensions
+        ub=func.problem.ub,  # the upper bound of each problem dimensions
+        dims=func.dim,  # the problem dimensions
+        ninits=n_init,  # the number of random samples used in initializations
+        func=func,  # function object to be optimized
+        Cp=1,  # Cp for MCTS
         leaf_size=10,  # tree leaf size
         kernel_type="rbf",  # SVM configruation
         gamma_type="auto",  # SVM configruation
@@ -71,7 +71,7 @@ def run_lamcts_init_hyp(
     agent.search(iterations=budget)
 
     # Save the samples and their values in a CSV file
-    with open(csv_filepath, 'w', newline='') as csvfile:
+    with open(output_file, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         # Write column headers
         writer.writerow(list(param_space.keys()) + ["Value"])

@@ -3,7 +3,8 @@ from multiprocessing import Pool, Process
 from typing import List, Tuple
 
 import pandas as pd
-from test_hypotheses import get_function, get_scenario_name, get_scenarios
+
+from utils import get_function, get_scenario_name, get_scenarios
 
 
 def process_scenario(
@@ -45,6 +46,7 @@ def process_scenario(
             # Calculate the best so far
             for i in target.index:
                 if regret:
+                    # TODO: Turn HypBO into a minimization problem
                     best_so_far.loc[i] = objective - max(target[: i + 1])
                 else:
                     best_so_far.loc[i] = max(target[: i + 1])

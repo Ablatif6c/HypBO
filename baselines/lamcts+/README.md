@@ -1,4 +1,5 @@
-This project has been edited and used as a baseline to compare to HypBO. The added scripts for testing it are `save_data_best_so_far.py`, `save_regret.py`, `utils.py`, and `main.py`, as well as the folders `resources` and `outputs`.
+**<span style="color:green">This project has been edited and used as a baseline to compare to HypBO. The added scripts for testing it are `save_data_best_so_far.py`, `utils.py`, and `main.py`, as well as the folders `resources` and `outputs`.</span>**
+
 The method init_train in MCTS has been edited so that if initilization regions are passed, the initilization is entirely done in those regions.
 # Latent Action Monte Carlo Tree Search (LA-MCTS)
 LA-MCTS is a meta-algortihm that partitions the search space for black-box optimizations. LA-MCTS progressively learns to partition and explores promising regions in the search space, so that solvers such as Bayesian Optimizations (BO) can focus on promising subregions, mitigating the over-exploring issue in high-dimensional problems. 
