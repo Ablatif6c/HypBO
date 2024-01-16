@@ -1,224 +1,214 @@
+"""
+This script performs ablation studies and saves the results per function per
+hypothesis in separate CSV files.
+"""
+
+import glob
 import os
-from multiprocessing import Pool, Process
+import re
 from typing import List, Tuple
 
+import numpy as np
 import pandas as pd
 
-from utils import get_function, get_scenario_name, get_scenarios
+from utils import multiprocess_all_function_data
 
 
-def process_scenario(
-    path: str,
-    scenario_name: str,
-    func_name: str,
-    objective: float,
-    regret: bool = True,
-):
-    seeds = {}
-    # Get the dataset files
-    scenario_path = os.path.join(
-        path,
-        scenario_name,
-    )
-    if not os.path.exists(scenario_path):
-        return
-
-    for file in os.listdir(scenario_path):
-        print(f"\t\t...file: {file}")
-        if file.startswith(f"dataset_{func_name}_{scenario_name}"):
-            # Fetch the seed integer in the filename
-            seed = int(next(filter(str.isdigit, file.split("_"))))
-
-            # Create a DataFrame to save all data from
-            # all scenarios of that seed
-            if seed not in seeds.keys():
-                seeds[seed] = pd.DataFrame()
-
-            # Get the Target column
-            target = pd.read_csv(
-                os.path.join(
-                    scenario_path,
-                    file,
-                )
-            )["Target"]
-            best_so_far = pd.DataFrame(columns=[scenario_name])
-
-            # Calculate the best so far
-            for i in target.index:
-                if regret:
-                    # TODO: Turn HypBO into a minimization problem
-                    best_so_far.loc[i] = objective - max(target[: i + 1])
-                else:
-                    best_so_far.loc[i] = max(target[: i + 1])
-
-            # Save the best so far column
-            seeds[seed][scenario_name] = best_so_far[scenario_name]
-    return seeds
-
-
-def save_all_best_so_far(
-    func_name: str,
-    scenario_names: List[str],
-    dir_name: str = "data",
-    regret=False,
-):
-    print(
-        f"{dir_name}: generating the best so far datasets for {func_name}...")
-    seeds = {}
-    path = os.path.join(
-        dir_name,
-        func_name,
-    )
-
-    objective = 0
-    if regret:
-        if func_name == "HER":
-            objective = 28
-        else:
-            func = get_function(name=func_name.split("_")[0])
-            objective = func.problem.yopt
-    # For each scenario
-    with Pool(processes=len(scenario_names)) as pool:
-        args = [
-            (path, scenario_name, func_name, objective, regret)
-            for scenario_name in scenario_names]
-        results = pool.starmap(
-            process_scenario,
-            args,
-        )
-        for res in results:
-            for seed, series in res.items():
-                if seed not in seeds.keys():
-                    seeds[seed] = pd.DataFrame()
-                scenario_name = series.columns[0]
-                seeds[seed][scenario_name] = series
-
-    for seed, df in seeds.items():
-        file_path = os.path.join(path, f"all_{func_name}_bsf_{seed}.csv")
-        df.to_csv(file_path)
-        print(f"Data generated and saved in {file_path}")
-
-
-def save_avg_and_std_best_so_far(
-    func_name: str,
-    scenario_names: List[str],
-    dir_name: str = "data",
-):
-    print(f"Generating the average and std datasets for {func_name}...")
-    path = os.path.join(
-        dir_name,
-        func_name,
-    )
-    df_avg = pd.DataFrame(columns=scenario_names)
-    df_std = pd.DataFrame(columns=scenario_names)
-
-    for scenario_name in scenario_names:
-        # Get the bsf files
-        df_scenario = pd.DataFrame()
-        for file in os.listdir(path):
-            if file.startswith(f"all_{func_name}_bsf_"):
-                seed = file.split(".")[0]
-                seed = seed.split("_")[-1]
-                df = pd.read_csv(
-                    os.path.join(
-                        path,
-                        file,
-                    )
-                )
-                if scenario_name in df.columns:
-                    target = df[scenario_name]
-                    df_scenario[f"Target_{seed}"] = target
-        df_avg[scenario_name] = df_scenario.mean(axis=1)
-        df_std[scenario_name] = df_scenario.std(axis=1)
-
-    average_file_path = os.path.join(path, f"{func_name}_average.csv")
-    df_avg.to_csv(average_file_path)
-    print(f"Data generated and saved in {average_file_path}")
-
-    std_file_path = os.path.join(path, f"{func_name}_std.csv")
-    df_std.to_csv(std_file_path)
-    print(f"Data generated and saved in {std_file_path}")
-
-
-def process_function_data(
-    func_name: str,
-    dim: int,
-    method_dir: str,
-    method: str = "HypBO",
-    regret: bool = True,
-):
-    scenarios_list = get_scenarios(
-        func_name=func_name,
-        dim=dim,
-    )
-    scenario_names = []
-    if method == "HypBO":
-        scenario_names = [get_scenario_name(
-            scenarios) for scenarios in scenarios_list]
-    else:
-        scenario_names = ["No Hypothesis"]
-
-    if "HER" not in func_name:
-        func_name = f"{func_name}_d{dim}"
-    save_all_best_so_far(
-        func_name=func_name,
-        dir_name=method_dir,
-        scenario_names=scenario_names,
-        regret=regret,
-    )
-    save_avg_and_std_best_so_far(
-        func_name=func_name,
-        dir_name=method_dir,
-        scenario_names=scenario_names,
-    )
-
-
-def base_multiprocess_function_data(
+def ablation_studies_bsf(
     test_functions: List[Tuple[str, int]],
-    method_dir: str,
-    method: str = "HypBO",
-    regret: bool = True,
+    ablation_dir: str
 ):
-    processes = []
-    for func_name, dim in test_functions:
-        process = Process(
-            target=process_function_data,
-            args=(func_name, dim, method_dir, method, regret),
-        )
-        process.start()
-        processes.append(process)
+    """
+    Perform ablation studies on the given test functions using the data in the
+    ablation directory.
 
-    for process in processes:
-        process.join()
+    Args:
+        test_functions (List[Tuple[str, int]]): A list of test functions,
+            where each function is represented as a tuple of function
+            name (str) and function id (int).
+        ablation_dir (str): The path to the ablation directory containing the
+        data.
+
+    Returns:
+        None
+    """
+    print("Performing ablation studies...")
+    # Get the list of ablation test cases directories.
+    ablation_dirs = [dir for dir in os.listdir(
+        ablation_dir) if os.path.isdir(os.path.join(ablation_dir, dir))]
+
+    # For each ablation test case directory, generate the best so far data.
+    for dir_name in ablation_dirs:
+        dir_path = os.path.join(ablation_dir, dir_name)
+        multiprocess_all_function_data(test_functions, method_dir=dir_path)
 
 
-def all_functions(test_functions: List[Tuple[str, int]], methods: List[str]):
+def save_results_per_function_per_hypothesis(ablation_dir: str):
+    """
+    Save the results per function per hypothesis in separate CSV files.
+
+    Args:
+        ablation_dir (str): The directory path where the ablation studies are
+        located.
+
+    Returns:
+        None
+    """
+    avg_data = {}
+    std_data = {}
+
+    # For each ablation study
+    ablation_dirs = [dir for dir in os.listdir(
+        ablation_dir) if os.path.isdir(os.path.join(ablation_dir, dir))]
+    print(f"Scraping {len(ablation_dirs)} ablation studies:")
+    for ablation_dir_name in ablation_dirs:
+        print(f"\t{ablation_dir_name}")
+        dir_path = os.path.join(ablation_dir, ablation_dir_name)
+
+        # For each test function
+        for func_name in os.listdir(dir_path):
+            # Get avg file and the scenario data.
+            avg_file = os.path.join(
+                dir_path, func_name, f"{func_name}_average.csv")
+            if os.path.exists(avg_file):
+                avg_df = pd.read_csv(avg_file)
+
+                # For each scenario
+                for column in avg_df.columns[1:]:   # Remove iteration column
+                    if column not in avg_data.keys():
+                        avg_data[column] = {}
+                    if func_name not in avg_data[column].keys():
+                        avg_data[column][func_name] = []
+
+                    # Get the values
+                    values = avg_df[column].values
+                    if len(values) > 0:
+                        avg_data[column][func_name].append(
+                            (ablation_dir_name, values))
+
+            # std
+            std_file = os.path.join(
+                dir_path, func_name, f"{func_name}_std.csv")
+            if os.path.exists(std_file):
+                std_df = pd.read_csv(std_file)
+
+                # For each scenario
+                for column in std_df.columns[1:]:  # Remove iteration column
+                    if column not in std_data.keys():
+                        std_data[column] = {}
+                    if func_name not in std_data[column].keys():
+                        std_data[column][func_name] = []
+                    # Get the values
+                    values = std_df[column].values
+                    if len(values) > 0:
+                        std_data[column][func_name].append(
+                            (ablation_dir_name, values))
+
+    # Create summary files
+    print("Saving summary files...")
+    for scenario_name in avg_data.keys():
+        print(f"\t{scenario_name}")
+        for func_name in avg_data[scenario_name].keys():
+            # Average
+            avg_file_path = os.path.join(
+                ablation_dir, f"AS_{scenario_name}_{func_name}_avg.csv")
+            columns, data = zip(*avg_data[scenario_name][func_name])
+            data = np.array(data).T
+            df = pd.DataFrame(columns=columns, data=data)
+            df.to_csv(avg_file_path)
+
+            # Std
+            std_file_path = os.path.join(
+                ablation_dir, f"AS_{scenario_name}_{func_name}_std.csv")
+            columns, data = zip(*std_data[scenario_name][func_name])
+            data = np.array(data).T
+            df = pd.DataFrame(columns=columns, data=data)
+            df.to_csv(std_file_path)
+
+
+def save_all_results_in_one_file(ablation_dir: str):
+    """
+    Save all ablation study results in a single file.
+
+    Args:
+        ablation_dir (str): The directory path where the ablation study
+        results are located.
+
+    Returns:
+        None
+    """
+    # Get all avg files.
+    csv_av_files = glob.glob(os.path.join(ablation_dir, "*_avg.csv"))
+
+    # Create empty dataframe to save all results in.
+    all_results = pd.DataFrame()
+
+    # For each avg file create a dataframe and add it to all_results.
+    for avg_file in csv_av_files:
+        df = pd.read_csv(avg_file)  # Read avg file.
+        # Get function name.
+        function_name = os.path.basename(avg_file).split(
+            '_')[-3] + "_" + os.path.basename(avg_file).split('_')[-2]
+        df['Function'] = function_name  # Add function name to dataframe.
+        # Get hypotheses names.
+        hypotheses_names = re.search(
+            r'AS_(.*?)_'+function_name, os.path.basename(avg_file)).group(1)
+        # Add hypotheses names to dataframe.
+        df['Hypotheses'] = hypotheses_names
+        # Add dataframe to all_results.
+        all_results = pd.concat([all_results, df], ignore_index=True)
+
+    # Save all_results in the ablation directory
+    # Create file path.
+    all_results_file = os.path.join(ablation_dir, "all_results.csv")
+
+    all_results = all_results.reindex(columns=[
+        all_results.columns[0],
+        'u10_l1',
+        'u10_l2',
+        'u10_l3',
+        'u10_l4',
+        'u10_l5',
+        'u10_l6',
+        'u10_l7',
+        'u10_l8',
+        'u10_l9',
+        'u10_l10',
+        'u1_l10',
+        'Function',
+        'Hypotheses']
+    )
+    all_results.to_csv(all_results_file, index=False)  # Save all_results.
+
+
+def all_functions(
+    test_functions: List[Tuple[str, int]], methods: List[str], data_dir: str
+):
+    """
+    Process all functions for each method and save the data.
+
+    Args:
+        test_functions (List[Tuple[str, int]]): A list of test functions,
+            where each function is represented as a tuple of its name and
+            an integer.
+        methods (List[str]): A list of methods to be processed.
+        data_dir (str): The directory where the data will be saved.
+
+    Returns:
+        None
+    """
     for method in methods:
         method_dir = os.path.join(
             data_dir,
             method,
         )
-        base_multiprocess_function_data(
+        multiprocess_all_function_data(
             test_functions=test_functions, method=method, method_dir=method_dir
         )
 
 
-def ablation_studies(test_functions: List[Tuple[str, int]], ablation_dir: str):
-    ablation_dirs = [dir for dir in os.listdir(
-        ablation_dir) if os.path.isdir(os.path.join(ablation_dir, dir))]
-
-    for dir_name in ablation_dirs:
-        dir_path = os.path.join(ablation_dir, dir_name)
-        base_multiprocess_function_data(test_functions, method_dir=dir_path)
-
-
 if __name__ == "__main__":
-    data_dir = os.path.join("data")
-    synthetic_func_methods = ["HypBO", "LA-MCTS", "Random Search"]
-
-    her_func_methods = ["HypBO", "DBO", "Random Search"]
-    test_her_functions = [("HER", 10)]
-
+    # Synthetic functions
     test_synthetic_functions = [
         ("Branin", 2),
         ("Sphere", 2),
@@ -228,15 +218,30 @@ if __name__ == "__main__":
         ("Levy", 20),
     ]
 
-    # all_functions(
-    #     test_functions=test_synthetic_functions,
-    #     methods=synthetic_func_methods,
-    # )
-    # all_functions(
-    #     test_functions=test_her_functions,
-    #     methods=her_func_methods,
-    # )
+    # Ablation studies
+    do_ablation_studies = True
+    if do_ablation_studies:
+        ablation_dir = os.path.join("data", "ablation_studies")
+        ablation_studies_bsf(test_functions=test_synthetic_functions,
+                             ablation_dir=ablation_dir)
+        save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)
+        save_all_results_in_one_file(ablation_dir=ablation_dir)
 
-    ablation_dir = os.path.join(data_dir, "Ablation Studies")
-    ablation_studies(test_functions=test_synthetic_functions,
-                     ablation_dir=ablation_dir)
+    # Benchmarks
+    benchmark = False
+    if benchmark:
+        data_dir = os.path.join("data")
+        synthetic_func_methods = ["HypBO", "LA-MCTS", "Random Search"]
+
+        her_func_methods = ["HypBO", "DBO", "Random Search"]
+        test_her_functions = [("HER", 10)]
+        all_functions(
+            test_functions=test_synthetic_functions,
+            methods=synthetic_func_methods,
+            data_dir=data_dir,
+        )
+        all_functions(
+            test_functions=test_her_functions,
+            methods=her_func_methods,
+            data_dir=data_dir,
+        )

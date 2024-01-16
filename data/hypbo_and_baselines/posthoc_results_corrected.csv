@@ -1,0 +1,13 @@
+,RS,lamcts,turbo,hypbo - Good,lamcts+ - Good,pibo - Good,hypbo - Weak,lamcts+ - Weak,pibo - Weak,hypbo - Poor,lamcts+ - Poor,pibo - Poor
+RS,False,True,True,True,True,True,True,True,False,False,False,True
+lamcts,True,False,False,True,True,True,True,True,False,False,True,True
+turbo,True,False,False,True,True,True,True,True,False,False,True,True
+hypbo - Good,True,True,True,False,False,False,True,True,True,True,True,True
+lamcts+ - Good,True,True,True,False,False,False,False,True,True,True,True,True
+pibo - Good,True,True,True,False,False,False,True,True,True,True,True,True
+hypbo - Weak,True,True,True,True,False,True,False,False,True,True,True,True
+lamcts+ - Weak,True,True,True,True,True,True,False,False,True,True,True,True
+pibo - Weak,False,False,False,True,True,True,True,True,False,False,True,True
+hypbo - Poor,False,False,False,True,True,True,True,True,False,False,True,True
+lamcts+ - Poor,False,True,True,True,True,True,True,True,True,True,False,False
+pibo - Poor,True,True,True,True,True,True,True,True,True,True,False,False

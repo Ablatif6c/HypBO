@@ -5,7 +5,7 @@ from typing import List
 
 from DBO.bayes_opt.bayesian_optimization import BayesianOptimization
 from hypbo import HypBO
-from test_hypotheses import get_function, get_scenario_name, get_scenarios
+from utils import get_function, get_scenario_name, get_scenarios
 
 # Initialize parser
 parser = argparse.ArgumentParser()
@@ -76,17 +76,17 @@ parser.add_argument(
     const=10,
     default=10)
 parser.add_argument(
-    "-g",
-    "--global_limit",
-    help="Global failure limit",
+    "-u",
+    "--upper_limit",
+    help="Upper failure limit",
     nargs='?',
     type=int,
     const=5,
     default=5)
 parser.add_argument(
     "-l",
-    "--local_limit",
-    help="Local failure limit",
+    "--lower_limit",
+    help="Lower failure limit",
     nargs='?',
     type=int,
     const=2,
@@ -111,8 +111,8 @@ n_processes = args.n_processes
 func_name = args.func_name
 dim = args.dim
 ablation_studies = args.ablation_studies
-global_limit = args.global_limit
-local_limit = args.local_limit
+upper_limit = args.upper_limit
+lower_limit = args.lower_limit
 
 
 def run_hypbo(
@@ -120,7 +120,7 @@ def run_hypbo(
     scenarios: List = [],
     seed: int = 0,
 ):
-    scenario_name = get_scenario_name(hypotheses=scenarios)
+    scenario_name = get_scenario_name(scenario=scenarios)
     print(f"--------------- Scenario: {scenario_name}\
                 \t Seed: {seed}/{seed_start + seed_count-1}")
     # Params
@@ -133,7 +133,7 @@ def run_hypbo(
     }
 
     # Create hypbo with the params and do the search.
-    print(f"Global vs. Local: {global_limit} vs. {local_limit}")
+    print(f"Global vs. Local: {upper_limit} vs. {lower_limit}")
     hypbo = HypBO(
         func=func,
         feature_names=feature_names,
@@ -143,8 +143,8 @@ def run_hypbo(
         seed=seed,
         n_processes=n_processes,
         discretization=False,
-        global_failire_limit=global_limit,
-        local_failure_limit=local_limit
+        global_failire_limit=upper_limit,
+        local_failure_limit=lower_limit
     )
     hypbo.search(
         budget=budget,
@@ -160,8 +160,8 @@ def run_hypbo(
     if ablation_studies:
         folder_path = os.path.join(
             folder_path,
-            "Ablation Studies",
-            f"g{global_limit}_l{local_limit}")
+            "ablation_studies",
+            f"u{upper_limit}_l{lower_limit}")
 
     # Save the data.
     hypbo.save_data(

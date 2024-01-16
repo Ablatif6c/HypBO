@@ -135,16 +135,16 @@ if __name__ == "__main__":
         help="Function name",
         nargs='?',
         type=str,
-        const="Ackley",
-        default="Ackley")
+        const="Sphere",
+        default="Sphere")
     parser.add_argument(
         "-d",
         "--dim",
         help="Starting dimension",
         nargs='?',
         type=int,
-        const=5,
-        default=5)
+        const=2,
+        default=2)
     parser.add_argument(
         "-ss",
         "--seed_start",

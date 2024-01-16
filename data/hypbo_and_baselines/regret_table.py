@@ -8,7 +8,7 @@ def save_regrets(
     methods: List[str],
     func_names: List[str],
     dir_name: str = "data",
-    n: int = 100,   # TODO: Change to 105
+    n: int = 105,
     std=False,
     regret_file_path: str = "regret.csv",
 ):
