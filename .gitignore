@@ -163,6 +163,4 @@ cython_debug/
 requirements_dev.txt
 .devcontainer/
 .vscode/
-data/data_analysis.dxp
-data/hypbo_and_baselines/__stat_tests.ipynb
-data/hypbo_and_baselines/conover_results.csv
+data/hypbo_and_baselines/__hypbo_and_baselines/

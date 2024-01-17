@@ -209,8 +209,8 @@ def process_function_data(
     regret: bool = True,
 ):
     """
-    Process the data for a function by generating and saving the best so far datasets,
-    as well as the average and standard deviation datasets.
+    Process the data for a function by generating and saving the best so far
+    datasets, as well as the average and standard deviation datasets.
 
     Args:
         func_name (str): The name of the function.
@@ -231,16 +231,14 @@ def process_function_data(
 
 
 if __name__ == "__main__":
-    data_dir = os.path.join("outputs",
-                            "Ackley_d9")
+    data_dir = os.path.join("outputs")
     test_synthetic_functions = [
-        # ("Branin", 2),
-        # ("Sphere", 2),
-        # ("Ackley", 5),
-        # ("Ackley", 9),
-        # ("Rosenbrock", 14),
-        # ("Levy", 20),
-        "200 iters"
+        ("Branin", 2),
+        ("Sphere", 2),
+        ("Ackley", 5),
+        ("Ackley", 9),
+        ("Rosenbrock", 14),
+        ("Levy", 20),
     ]
     regret = True,
     processes = []

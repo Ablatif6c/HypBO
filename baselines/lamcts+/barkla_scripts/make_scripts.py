@@ -2,11 +2,11 @@ import os
 
 tests = [
     {
-        "func_name": "Ackley",
-        "dim": 9,
+        "func_name": "Sphere",
+        "dim": 2,
         "seed_start": 0,
-        "seed_count": 50,
-        "budget": 200,
+        "seed_count": 1,
+        "budget": 100,
         "n_init": 5,
     },
 ]

@@ -203,7 +203,7 @@ def all_functions(
             method,
         )
         multiprocess_all_function_data(
-            test_functions=test_functions, method=method, method_dir=method_dir
+            test_functions=test_functions, method_dir=method_dir
         )
 
 
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     ]
 
     # Ablation studies
-    do_ablation_studies = True
+    do_ablation_studies = False
     if do_ablation_studies:
         ablation_dir = os.path.join("data", "ablation_studies")
         ablation_studies_bsf(test_functions=test_synthetic_functions,
@@ -228,20 +228,21 @@ if __name__ == "__main__":
         save_all_results_in_one_file(ablation_dir=ablation_dir)
 
     # Benchmarks
-    benchmark = False
+    benchmark = True
     if benchmark:
-        data_dir = os.path.join("data")
-        synthetic_func_methods = ["HypBO", "LA-MCTS", "Random Search"]
+        data_dir = os.path.join("data", "hypbo_and_baselines")
+        synthetic_func_methods = ["hypbo"]  # , "lamcts", "random_search"]
 
-        her_func_methods = ["HypBO", "DBO", "Random Search"]
-        test_her_functions = [("HER", 10)]
         all_functions(
             test_functions=test_synthetic_functions,
             methods=synthetic_func_methods,
             data_dir=data_dir,
         )
-        all_functions(
-            test_functions=test_her_functions,
-            methods=her_func_methods,
-            data_dir=data_dir,
-        )
+
+        # her_func_methods = ["HypBO", "DBO", "Random Search"]
+        # test_her_functions = [("HER", 10)]
+        # all_functions(
+        #     test_functions=test_her_functions,
+        #     methods=her_func_methods,
+        #     data_dir=data_dir,
+        # )

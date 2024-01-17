@@ -17,32 +17,32 @@ parser.add_argument(
     help="Function name",
     nargs='?',
     type=str,
-    const="Ackley",
-    default="Ackley")
+    const="Branin",
+    default="Branin")
 parser.add_argument(
     "-d",
     "--dim",
     help="Starting dimension",
     nargs='?',
     type=int,
-    const=5,
-    default=5)
+    const=2,
+    default=2)
 parser.add_argument(
     "-ss",
     "--seed_start",
     help="Starting seed",
     nargs='?',
     type=int,
-    const=0,
-    default=0)
+    const=10,
+    default=10)
 parser.add_argument(
     "-sc",
     "--seed_count",
     help="Seed count",
     nargs='?',
     type=int,
-    const=5,
-    default=5)
+    const=3,
+    default=3)
 parser.add_argument(
     "-n",
     "--n_init",
@@ -97,8 +97,8 @@ parser.add_argument(
     help="Is this an ablation study",
     nargs='?',
     type=bool,
-    const=True,
-    default=True)
+    const=False,
+    default=False)
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -133,7 +133,7 @@ def run_hypbo(
     }
 
     # Create hypbo with the params and do the search.
-    print(f"Global vs. Local: {upper_limit} vs. {lower_limit}")
+    print(f"Upper vs. Lower: {upper_limit} vs. {lower_limit}")
     hypbo = HypBO(
         func=func,
         feature_names=feature_names,
@@ -182,7 +182,7 @@ def multiprocess_synthetic_experiment(
     )
     hypotheses = get_scenarios(
         func_name=func_name,
-        dim=dim)
+        dim=dim)[-2:]
     for seed in range(seed_start, seed_start + seed_count):
         processes = []
         for hypothesis in hypotheses:

@@ -1,16 +1,8 @@
-# pandas~=1.5.3
-# numpy~=1.21.6
-# scipy==1.6.3
-
-# # LAMCTS
-# torch~=1.10.2
-# gpytorch~=1.8.1
-# scikit-learn~=0.24.2
-# matplotlib~=3.7.2
-
 pandas
-numpy
+numpy==1.20.3
 scipy
 matplotlib
 ipykernel
 scikit-learn
+torch~=1.10.2
+gpytorch~=1.8.1

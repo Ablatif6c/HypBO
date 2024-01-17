@@ -91,7 +91,8 @@ def multiprocess_synthetic_experiment(
         seed_start: int,
         seed_count: int):
     """
-    Run the LAMCTS algorithm (initialized in the hypothesis subspace) for multiple scenarios and seeds.
+    Run the LAMCTS algorithm (initialized in the hypothesis subspace)
+    for multiple scenarios and seeds.
 
     Args:
         func_name (str): The name of the function to optimize.
@@ -137,8 +138,8 @@ if __name__ == "__main__":
         help="Function name",
         nargs='?',
         type=str,
-        const="Branin",
-        default="Branin")
+        const="Sphere",
+        default="Sphere")
     parser.add_argument(
         "-d",
         "--dim",
@@ -177,8 +178,8 @@ if __name__ == "__main__":
         help="Budget",
         nargs='?',
         type=int,
-        const=2,
-        default=2)
+        const=100,
+        default=100)
 
     # Read arguments from command line
     args = parser.parse_args()

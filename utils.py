@@ -1219,7 +1219,6 @@ def process_function_data(
 def multiprocess_all_function_data(
     test_functions: List[Tuple[str, int]],
     method_dir: str,
-    method: str = "HypBO",
     regret: bool = True,
 ):
     """
