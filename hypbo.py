@@ -1,8 +1,27 @@
+"""
+This script implements the HypBO (Hypothesis-based Bayesian Optimization)
+algorithm. HypBO is a Bayesian optimization algorithm that incorporates
+user-defined hypotheses to guide the optimization process.
+
+The HypBO class provides an interface to initialize and run the optimization
+process. It takes a function to be optimized, a list of feature names, an
+optimization model, and other optional parameters. The optimization process
+can be parallelized using multiple processes.
+
+The expected_improvement function computes the Expected Improvement (EI) at
+points X based on existing samples X_sample and Y_sample using a Gaussian
+process surrogate model.
+
+The Hypothesis class represents a user-defined hypothesis. It provides
+methods to apply the hypothesis to input samples and convert it to a
+string representation.
+"""
+
 import os
 import warnings
 from copy import deepcopy
 from multiprocessing import Pool
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -11,28 +30,43 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, Matern
 
 from Hypothesis import Hypothesis
+from typing import Tuple
+
 
 warnings.filterwarnings("ignore")
 
 
 def expected_improvement(
-    data,
+    data: Tuple[np.ndarray, np.ndarray],
     X: np.ndarray,
     xi: float = 0.0001,
     use_ei: bool = True,
     mu_sample_opt=None,
     seed: int = 1,
-):
-    """Computes the EI at points X based on existing samples X_sample and
-    Y_sample using a Gaussian process surrogate model.
+) -> np.ndarray:
+    """
+    Computes the Expected Improvement (EI) at points X based on existing
+    samples X_sample and Y_sample using a Gaussian process surrogate model.
 
-    Args: X: Points at which EI shall be computed (m x d). X_sample:
-    Sample locations (n x d).
-    Y_sample: Sample values (n x 1). gpr: A GaussianProcessRegressor
-    fitted to samples.
-    xi: Exploitation-exploration trade-off parameter.
+    Args:
+        data (Tuple[np.ndarray, np.ndarray]): The data to be used for the
+            Gaussian Process Regression, consisting of X_sample and Y_sample.
+            X_sample (np.ndarray): Sample locations (n x d) as a numpy array.
+            Y_sample (np.ndarray): Sample values (n x 1) as a numpy array.
+        X (np.ndarray): Points at which EI shall be computed (m x d) as a
+            numpy array.
+        xi (float, optional): Exploitation-exploration trade-off parameter.
+            Defaults to 0.0001.
+        use_ei (bool, optional): Whether to use Expected Improvement (EI) or
+            mean prediction (mu) as the acquisition function. Defaults to True.
+        mu_sample_opt (float, optional): The maximum value of the mean
+            prediction among the sample points. Defaults to None.
+        seed (int, optional): Random seed for reproducibility. Defaults to 1.
 
-    Returns: Expected improvements at points X."""
+    Returns:
+        np.ndarray: Expected improvements at points X as a numpy array.
+    """
+    # Unpack the data
     X_sample, y_sample = data
 
     # Create GPR
@@ -48,8 +82,12 @@ def expected_improvement(
         n_restarts_optimizer=10 * dim,
         random_state=seed,
     )
+
+    # Fit the GPR model
     X_data, y_data = data
     gpr.fit(X=X_data, y=y_data)
+
+    # Predict mean and standard deviation
     mu, sigma = gpr.predict(
         X,
         return_std=True,
@@ -58,7 +96,7 @@ def expected_improvement(
     if not use_ei:
         return mu
     else:
-        # calculate EI
+        # Calculate Expected Improvement (EI)
         if mu_sample_opt is None:
             mu_sample = gpr.predict(X_sample)
             mu_sample_opt = np.max(mu_sample)
@@ -75,7 +113,7 @@ def expected_improvement(
 class HypBO:
     def __init__(
             self,
-            func,
+            func: callable,
             feature_names: List,
             model,
             model_kwargs: dict,
@@ -83,8 +121,28 @@ class HypBO:
             seed: int = 0,
             n_processes: int = 1,
             discretization: bool = True,
-            global_failire_limit: int = 5,
+            global_failure_limit: int = 5,
             local_failure_limit: int = 2):
+        """
+        Initialize the HypBO class.
+
+        Args:
+            func (callable): The function to be optimized.
+            feature_names (List): List of feature names.
+            model: The optimization model.
+            model_kwargs (dict): Keyword arguments for the optimization model.
+            hypotheses (List[Hypothesis], optional): List of hypotheses.
+                Defaults to [].
+            seed (int, optional): Random seed. Defaults to 0.
+            n_processes (int, optional): Number of processes to use for
+                parallelization. Defaults to 1.
+            discretization (bool, optional): Whether to use discretization for
+                feature bounds. Defaults to True.
+            global_failure_limit (int, optional): Maximum number of allowed
+                consecutive failures for global optimization. Defaults to 5.
+            local_failure_limit (int, optional): Maximum number of consecutive
+                allowed failures for local optimization. Defaults to 2.
+        """
         # Model parameters
         self.model = model
         self.model_kwargs = model_kwargs
@@ -106,7 +164,7 @@ class HypBO:
 
         # Optimiser parameters
         self.failures = 0
-        self.GLOBAL_LIMIT = global_failire_limit
+        self.GLOBAL_LIMIT = global_failure_limit
         self.LOCAL_LIMIT = local_failure_limit
         self.GLOBAL_OPTIMISATION = 0
         self.LOCAL_OPTIMISATION = 1
@@ -117,8 +175,17 @@ class HypBO:
             func_name: str,
             scenario_name: str,
             seed: int = 0,
-            folder_path: str = os.path.join("data"),
+            folder_path: str = os.path.join("data", "hypbo_and_baselines"),
     ):
+        """Save the collected data to a CSV file.
+
+        Args:
+            func_name (str): Name of the function.
+            scenario_name (str): Name of the scenario.
+            seed (int, optional): Random seed. Defaults to 0.
+            folder_path (str, optional): Path to the folder where the data
+                will be saved. Defaults to "data/hypbo_and_baselines".
+        """
         # Create the folders that constitute the path.
         path = os.path.join(
             folder_path,
@@ -146,6 +213,15 @@ class HypBO:
         df.to_csv(file_path)
 
     def _check_samples_types(self, samples):
+        """Check the type of the samples and convert them to arrays
+        if necessary.
+
+        Args:
+            samples: The samples to check.
+
+        Returns:
+            The converted samples.
+        """
         # Turn into arrays
         if isinstance(samples[0], dict):
             # TODO order samples
@@ -156,6 +232,14 @@ class HypBO:
         return samples
 
     def _get_local_model(self, hypothesis):
+        """Get the local model for a hypothesis.
+
+        Args:
+            hypothesis: The hypothesis.
+
+        Returns:
+            The local model for the hypothesis.
+        """
         # Get the bounds
         lb, ub = hypothesis.sol_bounds
         kwargs = None
@@ -184,7 +268,16 @@ class HypBO:
     def _initialize_hypotheses(
             self,
             batch: int,
-            hypotheses: List):
+            hypotheses: List[Hypothesis]) -> List[np.ndarray]:
+        """Initialize the hypotheses.
+
+        Args:
+            batch (int): The batch size.
+            hypotheses (List[Hypothesis]): List of hypotheses.
+
+        Returns:
+            List of initialized samples for each hypothesis.
+        """
         all_X = []
         for hypothesis in hypotheses:
             hypothesis_model = self._get_local_model(hypothesis=hypothesis)
@@ -212,11 +305,20 @@ class HypBO:
         return [all_X]
 
     def initialize_data(
-            self,
-            n_init: int,
-            batch: int,
+        self,
+        n_init: int,
+        batch: int,
     ):
-        # Hypothesiss
+        """Initialize the data for optimization.
+
+        This method initializes the data for optimization by
+        generating initial samples and evaluating them.
+
+        Args:
+            n_init (int): Number of initial samples.
+            batch (int): Batch size.
+        """
+        # Hypotheses
         if self.has_hypotheses():
             X_init_hyp = []
             with Pool(processes=self.process_count) as pool:
@@ -264,18 +366,25 @@ class HypBO:
                     optimisation_level="Global",
                 )
 
-    def has_hypotheses(self):
+    def has_hypotheses(self) -> bool:
+        """Check if there are any hypotheses.
+
+        Returns:
+            True if there are hypotheses, False otherwise.
+        """
         return len(self.hypotheses) > 0
 
     def get_optimisation_level(self, iteration: int) -> int:
-        """Computes the level of optimisation (global or local) to perform\
-            next.
+        """Computes the level of optimisation (global or local)
+        to perform next.
+
+        Args:
+            iteration: The current iteration.
 
         Returns:
-            int: 0 for global optimisation, 1 for a local one.
+            The level of optimisation (0 for global, 1 for local).
         """
-
-        # Global optimisation if there are no hypothesiss.
+        # Global optimisation if there are no hypotheses.
         if not self.has_hypotheses():
             self.curt_optimisation_level = self.GLOBAL_OPTIMISATION
             return self.curt_optimisation_level
@@ -308,17 +417,43 @@ class HypBO:
 
             return self.curt_optimisation_level
 
-    def get_hypothesis_training_data(self, hypothesis):
+    def get_hypothesis_training_data(self, hypothesis: Hypothesis):
+        """Get the training data for a hypothesis.
+
+        Args:
+            hypothesis (Hypothesis): The hypothesis.
+
+        Returns:
+            tuple: A tuple containing the training data for the hypothesis.
+                The first element is an array of input samples.
+                The second element is an array of corresponding output values.
+
+        Raises:
+            ValueError: If the hypothesis has no training data.
+
+        """
+        # Initialize empty lists to store the training data
         hypothesis_X = []
         hypothesis_y = []
+
+        # Iterate over the input data and output data
         for x, y in zip(self.X, self.y):
+            # Check if the hypothesis applies to the current input data
             if hypothesis.apply(x) is True:
+                # If the hypothesis applies, add the input and output data to
+                # the respective lists
                 hypothesis_X.append(x)
                 hypothesis_y.append(y)
+
+        # Check if the hypothesis has any training data
         if len(hypothesis_X) == 0:
             raise ValueError(f"Hypothesis {hypothesis.name} has 0 data!")
+
+        # Convert the lists to numpy arrays
         hypothesis_X = np.array(hypothesis_X)
         hypothesis_y = np.array(hypothesis_y)
+
+        # Return the training data as a tuple
         return (hypothesis_X, hypothesis_y)
 
     def collect_samples(
@@ -329,14 +464,17 @@ class HypBO:
         """Evaluate the sample, add it to the samples and return its value.
 
         Args:
-            sample (list): the sample to evaluate.
-            is_conj_path (bool, optional): is True if the sample comes from a
-            hypothesis. Defaults to False.
+            sample (np.ndarray): The sample to evaluate.
+            optimisation_level (str, optional): The level of optimization.
+                Defaults to "Global".
 
         Returns:
-            float: evaluation of the sample
+            float: The evaluation of the sample.
         """
+        self.X.append(sample)
         value = self.func(sample)
+        self.y.append(value)
+        self.optimisation_levels.append(optimisation_level)
 
         if value > self.curt_best_value:
             self.curt_best_value = value
@@ -353,17 +491,28 @@ class HypBO:
         )
         return value
 
-    def sample_hypothesiss(
-            self,
-            batch: int,
-            conjs: List,
-            seed: int,
-    ):
+    def sample_hypotheses(
+        self,
+        batch: int,
+        hypotheses: List,
+        seed: int,
+    ) -> List:
+        """
+        Sample hypotheses from a list of given hypotheses.
+
+        Args:
+            batch (int): The number of samples to generate.
+            hypotheses (List): The list of hypotheses to sample from.
+            seed (int): The seed value for random number generation.
+
+        Returns:
+            List: The list of samples generated from the hypotheses.
+        """
         samples = []
         # Compute the number of samples we ask from each hypothesis
-        conj_num_samples = int(5 * np.ceil(batch / len(conjs)))
+        hyp_num_samples = int(5 * np.ceil(batch / len(hypotheses)))
 
-        for i, hyp in enumerate(conjs):
+        for i, hyp in enumerate(hypotheses):
             # Get the local model
             model_hyp = self._get_local_model(hypothesis=hyp)
 
@@ -376,36 +525,36 @@ class HypBO:
                 )
 
             # Sampling
-            proposed_conj_samples = model_hyp.suggest(
-                conj_num_samples,
+            proposed_hyp_samples = model_hyp.suggest(
+                hyp_num_samples,
                 multiprocessing=self.process_count,
                 seed=seed,
             )
-            proposed_conj_samples = self._check_samples_types(
-                proposed_conj_samples)
+            proposed_hyp_samples = self._check_samples_types(
+                proposed_hyp_samples)
 
             _samples = []
-            for conj_sample in proposed_conj_samples:
-                if hyp.apply(conj_sample):
-                    _samples.append(conj_sample)
-            proposed_conj_samples = np.array(_samples)
+            for hyp_sample in proposed_hyp_samples:
+                if hyp.apply(hyp_sample):
+                    _samples.append(hyp_sample)
+            proposed_hyp_samples = np.array(_samples)
 
             # Compute the samples EI and add it as a column
             eis = expected_improvement(
                 data=(hypo_x, hypo_y),
-                X=proposed_conj_samples,
+                X=proposed_hyp_samples,
                 use_ei=True,
                 mu_sample_opt=self.curt_best_value,
                 seed=self.seed,
             )
             eis = eis.flatten()
-            proposed_conj_samples = [
-                [proposed_conj_samples[j], eis[j], i]
+            proposed_hyp_samples = [
+                [proposed_hyp_samples[j], eis[j], i]
                 for j in range(
-                    len(proposed_conj_samples),
+                    len(proposed_hyp_samples),
                 )
             ]
-            samples.extend(proposed_conj_samples)
+            samples.extend(proposed_hyp_samples)
 
         return samples
 
@@ -415,8 +564,21 @@ class HypBO:
         n_init: int = 5,
         batch: int = 1,
     ):
+        """
+        Perform a search optimization process.
+
+        Args:
+            budget (int): The number of iterations for the optimization
+                process.
+            n_init (int, optional): The number of initializations.
+                Defaults to 5.
+            batch (int, optional): The number of samples to evaluate in each
+                iteration. Defaults to 1.
+        """
+        # Initialize the data
         self.initialize_data(n_init, batch)
 
+        # Print the scenario name
         scenario_name = ""
         if self.has_hypotheses():
             scenario_name = '_'.join([c.name for c in self.hypotheses])

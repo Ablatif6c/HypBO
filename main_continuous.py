@@ -1,3 +1,11 @@
+"""
+This script performs synthetic experiments using the HypBO
+optimization algorithm. It takes command line arguments to specify the
+function name, dimension, and other parameters. The script runs the HypBO
+algorithm for the given function and dimension, and scenarios.
+It saves the optimization data in the specified folder path.
+"""
+
 import argparse
 import os
 from multiprocessing import Process
@@ -5,6 +13,7 @@ from typing import List
 
 from DBO.bayes_opt.bayesian_optimization import BayesianOptimization
 from hypbo import HypBO
+from Hypothesis import Hypothesis
 from utils import get_function, get_scenario_name, get_scenarios
 
 # Initialize parser
@@ -33,16 +42,16 @@ parser.add_argument(
     help="Starting seed",
     nargs='?',
     type=int,
-    const=10,
-    default=10)
+    const=0,
+    default=0)
 parser.add_argument(
     "-sc",
     "--seed_count",
     help="Seed count",
     nargs='?',
     type=int,
-    const=3,
-    default=3)
+    const=2,
+    default=2)
 parser.add_argument(
     "-n",
     "--n_init",
@@ -57,8 +66,8 @@ parser.add_argument(
     help="Budget",
     nargs='?',
     type=int,
-    const=100,
-    default=100)
+    const=10,
+    default=10)
 parser.add_argument(
     "-bc",
     "--batch",
@@ -117,12 +126,27 @@ lower_limit = args.lower_limit
 
 def run_hypbo(
     func,
-    scenarios: List = [],
+    scenarios: List[List[Hypothesis]],
     seed: int = 0,
 ):
+    """
+    Run the HypBO optimization algorithm.
+
+    Args:
+        func (object): The objective function to be optimized.
+        scenarios (List, optional): A list of scenarios, which is a list
+        of hypotheses, to be considered during optimization.
+        seed (int, optional): The random seed for reproducibility.
+
+    Returns:
+        None
+    """
+
+    # Get the scenario name
     scenario_name = get_scenario_name(scenario=scenarios)
-    print(f"--------------- Scenario: {scenario_name}\
-                \t Seed: {seed}/{seed_start + seed_count-1}")
+    print(
+        f"--------------- Scenario: {scenario_name}\t Seed: {seed}/{seed_start + seed_count-1}")
+
     # Params
     pbounds = func.bound
     feature_names = list(pbounds.keys())
@@ -143,7 +167,7 @@ def run_hypbo(
         seed=seed,
         n_processes=n_processes,
         discretization=False,
-        global_failire_limit=upper_limit,
+        global_failure_limit=upper_limit,
         local_failure_limit=lower_limit
     )
     hypbo.search(
@@ -174,25 +198,43 @@ def run_hypbo(
 def multiprocess_synthetic_experiment(
         func_name: str,
         dim: int = 0):
+    """
+    Run a multiprocess synthetic experiment.
+
+    Args:
+        func_name (str): The name of the function to be processed.
+        dim (int, optional): The dimension of the function. Defaults to 0.
+    """
+    # Print the function name being processed
     print(f"Processing {func_name}...")
 
+    # Get the function based on the given name and dimension
     func = get_function(
         dim=dim,
         name=func_name,
     )
+
+    # Get the last two scenarios for the given function name and dimension
     hypotheses = get_scenarios(
         func_name=func_name,
-        dim=dim)[-2:]
+        dim=dim)
+
+    # Iterate over the range of seeds
     for seed in range(seed_start, seed_start + seed_count):
         processes = []
+        # Iterate over the hypotheses
         for hypothesis in hypotheses:
+            # Create a new process for each hypothesis
             process = Process(
                 target=run_hypbo,
                 args=(func, hypothesis, seed),
             )
+            # Start the process
             process.start()
+            # Add the process to the list
             processes.append(process)
 
+        # Wait for all processes to finish
         for process in processes:
             process.join()
 
