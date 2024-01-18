@@ -21,7 +21,7 @@ import os
 import warnings
 from copy import deepcopy
 from multiprocessing import Pool
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -30,8 +30,6 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, Matern
 
 from Hypothesis import Hypothesis
-from typing import Tuple
-
 
 warnings.filterwarnings("ignore")
 
@@ -114,7 +112,7 @@ class HypBO:
     def __init__(
             self,
             func: callable,
-            feature_names: List,
+            feature_names: List[str],
             model,
             model_kwargs: dict,
             hypotheses: List[Hypothesis] = [],
@@ -122,13 +120,15 @@ class HypBO:
             n_processes: int = 1,
             discretization: bool = True,
             global_failure_limit: int = 5,
-            local_failure_limit: int = 2):
+            local_failure_limit: int = 2,
+            gamma: float = 0.0
+    ):
         """
         Initialize the HypBO class.
 
         Args:
             func (callable): The function to be optimized.
-            feature_names (List): List of feature names.
+            feature_names (List[str]): List of feature names.
             model: The optimization model.
             model_kwargs (dict): Keyword arguments for the optimization model.
             hypotheses (List[Hypothesis], optional): List of hypotheses.
@@ -142,6 +142,9 @@ class HypBO:
                 consecutive failures for global optimization. Defaults to 5.
             local_failure_limit (int, optional): Maximum number of consecutive
                 allowed failures for local optimization. Defaults to 2.
+            gamma (float, optional): Sets how much improvement is considered
+                'significant' for the level optimization process.
+                Defaults to 0.0.
         """
         # Model parameters
         self.model = model
@@ -163,6 +166,7 @@ class HypBO:
         self.optimisation_levels = []
 
         # Optimiser parameters
+        self.gamma = gamma
         self.failures = 0
         self.GLOBAL_LIMIT = global_failure_limit
         self.LOCAL_LIMIT = local_failure_limit
@@ -700,7 +704,7 @@ class HypBO:
                 # Update the optimisation level success/failure
                 # local
                 curt_value = self.y[-1]
-                if curt_value >= self.curt_best_value:
+                if curt_value >= self.curt_best_value + self.gamma:
                     self.failures = 0
                 else:
                     self.failures += 1
