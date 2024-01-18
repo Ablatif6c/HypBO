@@ -19,8 +19,8 @@ def ablation_studies_bsf(
     ablation_dir: str
 ):
     """
-    Perform ablation studies on the given test functions using the data in the
-    ablation directory.
+    For each ablation test case directory, generate the best so far data
+    on the given test functions.
 
     Args:
         test_functions (List[Tuple[str, int]]): A list of test functions,
@@ -175,6 +175,7 @@ def save_all_results_in_one_file(ablation_dir: str):
         'u10_l9',
         'u10_l10',
         'u1_l10',
+        'u5_l2',
         'Function',
         'Hypotheses']
     )
@@ -219,16 +220,16 @@ if __name__ == "__main__":
     ]
 
     # Ablation studies
-    do_ablation_studies = False
+    do_ablation_studies = True
     if do_ablation_studies:
         ablation_dir = os.path.join("data", "ablation_studies")
-        ablation_studies_bsf(test_functions=test_synthetic_functions,
-                             ablation_dir=ablation_dir)
-        save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)
+        # ablation_studies_bsf(test_functions=test_synthetic_functions,
+        #                     ablation_dir=ablation_dir)
+        # save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)
         save_all_results_in_one_file(ablation_dir=ablation_dir)
 
     # Benchmarks
-    benchmark = True
+    benchmark = False
     if benchmark:
         data_dir = os.path.join("data", "hypbo_and_baselines")
         synthetic_func_methods = ["hypbo"]  # , "lamcts", "random_search"]

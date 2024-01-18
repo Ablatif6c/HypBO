@@ -66,7 +66,9 @@ After downloading the HypBO repository, the installation steps depends on whethe
 ## Usage
 
 Note that HypBO is a maximizing optimizer.
+
 ### Synthetic Functions
+
 The synthetic function for testing optimization algorithms are taken from the [Virtual Library of Simulation Experiments](https://www.sfu.ca/~ssurjano/optimization.html) and implemented in the `resources` folder where you will find an exhaustive list of those synthetic functions.
 
 To run the synthetic function experiments, run the file `main_continuous.py`. It runs the HypBO algorithm for the given:
@@ -97,9 +99,10 @@ For example to run the Photocatalytic Hydrogen Production experiment with 10 ini
 Details on how to use the baseline methods can be found in their respective sub-folders in `baselines/`.
 
 ## Citation
+
 This code and the results generated from it are used in the "Accelerating Black-Box Scientific Experiments using Experts' Hypotheses" research paper.
 
-
 ## License
+
 [MIT license](https://opensource.org/license/mit/)
 
