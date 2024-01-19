@@ -153,7 +153,6 @@ def run_hypbo(
     model_kwargs = {
         "pbounds": pbounds,
         "random_seed": seed,
-        # "func": None,
     }
 
     # Create hypbo with the params and do the search.
@@ -191,7 +190,6 @@ def run_hypbo(
     hypbo.save_data(
         func_name=f"{func.name}_d{func.dim}",
         scenario_name=scenario_name,
-        seed=seed,
         folder_path=folder_path)
 
 

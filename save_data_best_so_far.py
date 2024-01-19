@@ -220,9 +220,9 @@ if __name__ == "__main__":
     ]
 
     # Ablation studies
-    do_ablation_studies = True
-    if do_ablation_studies:
-        ablation_dir = os.path.join("data", "ablation_studies")
+    do_ablation_study_u_l = True
+    if do_ablation_study_u_l:
+        ablation_dir = os.path.join("data", "ablation_studies", "u_l")
         # ablation_studies_bsf(test_functions=test_synthetic_functions,
         #                     ablation_dir=ablation_dir)
         # save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)

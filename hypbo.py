@@ -17,14 +17,16 @@ methods to apply the hypothesis to input samples and convert it to a
 string representation.
 """
 
+import concurrent.futures
+import multiprocessing
 import os
 import warnings
 from copy import deepcopy
-from multiprocessing import Pool
 from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
+from joblib import Parallel, delayed
 from scipy.stats import norm
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, Matern
@@ -117,7 +119,7 @@ class HypBO:
             model_kwargs: dict,
             hypotheses: List[Hypothesis] = [],
             seed: int = 0,
-            n_processes: int = 1,
+            n_processes: int = multiprocessing.cpu_count(),
             discretization: bool = True,
             global_failure_limit: int = 5,
             local_failure_limit: int = 2,
@@ -142,9 +144,9 @@ class HypBO:
                 consecutive failures for global optimization. Defaults to 5.
             local_failure_limit (int, optional): Maximum number of consecutive
                 allowed failures for local optimization. Defaults to 2.
-            gamma (float, optional): Sets how much improvement is considered
-                'significant' for the level optimization process.
-                Defaults to 0.0.
+            gamma (float, optional): Represents the percentage of improvement
+                that is considered 'significant' for the level optimization
+                process. Defaults to 0.0.
         """
         # Model parameters
         self.model = model
@@ -163,16 +165,16 @@ class HypBO:
         # Tracking
         self.curt_best_value = -np.inf
         self.curt_best_sample = None
-        self.optimisation_levels = []
+        self.optimization_levels = []
 
-        # Optimiser parameters
+        # Optimizer parameters
         self.gamma = gamma
         self.failures = 0
         self.GLOBAL_LIMIT = global_failure_limit
         self.LOCAL_LIMIT = local_failure_limit
-        self.GLOBAL_OPTIMISATION = 0
-        self.LOCAL_OPTIMISATION = 1
-        self.curt_optimisation_level = self.GLOBAL_OPTIMISATION
+        self.GLOBAL_OPTIMIZATION = 0
+        self.LOCAL_OPTIMIZATION = 1
+        self.curt_optimization_level = self.GLOBAL_OPTIMIZATION
 
     def save_data(
             self,
@@ -186,7 +188,6 @@ class HypBO:
         Args:
             func_name (str): Name of the function.
             scenario_name (str): Name of the scenario.
-            seed (int, optional): Random seed. Defaults to 0.
             folder_path (str, optional): Path to the folder where the data
                 will be saved. Defaults to "data/hypbo_and_baselines".
         """
@@ -205,13 +206,13 @@ class HypBO:
 
         file_path = os.path.join(
             path,
-            f"dataset_{func_name}_{scenario_name}_{seed}.csv",
+            f"dataset_{func_name}_{scenario_name}_{self.seed}.csv",
         )
         df = pd.concat(
             [
                 pd.DataFrame(self.X, columns=self.feature_names),
                 pd.DataFrame(self.y, columns=['Target']),
-                pd.DataFrame(self.optimisation_levels, columns=['Hypothesis'])
+                pd.DataFrame(self.optimization_levels, columns=['Hypothesis'])
             ],
             axis=1,)
         df.to_csv(file_path)
@@ -269,44 +270,48 @@ class HypBO:
         )
         return hypothesis_model
 
-    def _initialize_hypotheses(
+    def append_hypothesis_initial_samples(
             self,
             batch: int,
-            hypotheses: List[Hypothesis]) -> List[np.ndarray]:
-        """Initialize the hypotheses.
+            hypothesis: Hypothesis) -> None:
+        """Get initial samples for hypothesis and append them to
+        self.X_init to evaluate later.
 
         Args:
             batch (int): The batch size.
-            hypotheses (List[Hypothesis]): List of hypotheses.
-
-        Returns:
-            List of initialized samples for each hypothesis.
+            hypothesis (Hypothesis): The hypothesis.
         """
-        all_X = []
-        for hypothesis in hypotheses:
-            hypothesis_model = self._get_local_model(hypothesis=hypothesis)
+        hypothesis_model = self._get_local_model(hypothesis=hypothesis)
+        i = 0  # Count of initial samples for this hypothesis
 
-            X_init_hyp = hypothesis_model.initialize(
-                n_init=20000,
-                batch=batch,
-            )
-            # Only keep the samples that satisfy the hypothesis
-            X = []
-            for i in range(len(X_init_hyp)):
-                get_out_first = False
-                for j in range(batch):
-                    sample = X_init_hyp[i][j]
-                    if hypothesis.apply(input=sample):
-                        X.append((sample, hypothesis.name))
-                        if len(X) == batch:
-                            get_out_first = True
-                            break
-                if get_out_first:
-                    all_X.extend(X)
+        # Initialize the hypothesis until we have {batch} samples
+        while i < batch:
+            res = hypothesis_model.initialize(n_init=1, batch=1)
+            # Check if the hypothesis was initialized successfully
+            if len(res) == 0:
+                raise ValueError(
+                    f"Could not initialize hypothesis {hypothesis.name}!")
+
+            new_sample = hypothesis_model.initialize(n_init=1, batch=1)[0][0]
+
+            # Initialize a flag to track whether to add the sample
+            add_sample = True
+
+            # Check if the new_sample is distinct from existing samples
+            # Convert the manager list to a regular list for comparison
+            existing_sample_and_hyp_name_list = list(self.X_init)
+            for existing_sample, hyp_name in existing_sample_and_hyp_name_list:
+                if np.allclose(new_sample, existing_sample):
+                    add_sample = False
                     break
-            if len(X) == 0:
-                raise ValueError("No data for hypothesis")
-        return [all_X]
+
+            # Check if the new_sample satisfies the hypothesis
+            satisfies_hypothesis = hypothesis.apply(new_sample)
+
+            # Add the sample if it is distinct and satisfies the hypothesis
+            if add_sample and satisfies_hypothesis:
+                i += 1
+                self.X_init.append((new_sample, hypothesis.name))
 
     def initialize_data(
         self,
@@ -322,53 +327,44 @@ class HypBO:
             n_init (int): Number of initial samples.
             batch (int): Batch size.
         """
-        # Hypotheses
+        # Hypothesis (local) - Lower level initialization
         if self.has_hypotheses():
-            X_init_hyp = []
-            with Pool(processes=self.process_count) as pool:
-                hyp_chunks = np.array_split(
-                    self.hypotheses, self.process_count)
-                # Make sure all hyp_chunks are not empty
-                hyp_chunks = [
-                    chunk for chunk in hyp_chunks if len(chunk) > 0]
-                args = [(
-                        batch,              # batch
-                        hyp_chunks[i],    # conjs
-                        )
-                        for i in range(len(hyp_chunks))]
-                results = pool.starmap(
-                    self._initialize_hypotheses,
-                    args,)
-                results = [r for r in results if r is not None]
-                for r in results:
-                    for _r in r:
-                        X_init_hyp.extend(_r)
-                X_init_hyp = np.array(X_init_hyp)
-            # Evaluate init samples
-            for sample, conj_name in X_init_hyp:
-                self.collect_samples(
-                    sample=sample,
-                    optimisation_level=conj_name,
-                )
+            # Use a multiprocessing manager list for self.X_init
+            # so that all processes can access it and add to it
+            manager = multiprocessing.Manager()
+            self.X_init = manager.list()
+            with concurrent.futures.ProcessPoolExecutor(
+                    max_workers=min(self.process_count, len(self.hypotheses))
+            ) as executor:
+                futures = [executor.submit(
+                    self.append_hypothesis_initial_samples,
+                    batch,
+                    hypothesis
+                ) for hypothesis in self.hypotheses]
 
-        # Global
+            # Evaluate init samples
+            for sample, hyp_name in self.X_init:
+                self.collect_samples(
+                    sample=sample, optimization_level=hyp_name)
+
+            self.X_init = list(self.X_init)
+
+            # Explicitly terminate the manager processes
+            manager.shutdown()
+
+        # Global - Upper level initialization
         n_init_hyp = len(self.X)
-        n_init = n_init - n_init_hyp
-        if n_init <= 0:
-            n_init = 1
+        n_init = max(1, n_init - n_init_hyp)
+        # Create the upper level model
         model_global = self.model(**self.model_kwargs)
-        X_init_global = model_global.initialize(
-            n_init,
-            batch,
-        )
+        X_init_global = model_global.initialize(n_init, batch)
 
         # Evaluate init samples
         for i in range(len(X_init_global)):
             for j in range(batch):
                 self.collect_samples(
                     sample=X_init_global[i][j],
-                    optimisation_level="Global",
-                )
+                    optimization_level="Global")
 
     def has_hypotheses(self) -> bool:
         """Check if there are any hypotheses.
@@ -378,48 +374,48 @@ class HypBO:
         """
         return len(self.hypotheses) > 0
 
-    def get_optimisation_level(self, iteration: int) -> int:
-        """Computes the level of optimisation (global or local)
+    def get_optimization_level(self, iteration: int) -> int:
+        """Computes the level of optimization (global or local)
         to perform next.
 
         Args:
             iteration: The current iteration.
 
         Returns:
-            The level of optimisation (0 for global, 1 for local).
+            The level of optimization (0 for global, 1 for local).
         """
-        # Global optimisation if there are no hypotheses.
+        # Global optimization if there are no hypotheses.
         if not self.has_hypotheses():
-            self.curt_optimisation_level = self.GLOBAL_OPTIMISATION
-            return self.curt_optimisation_level
+            self.curt_optimization_level = self.GLOBAL_OPTIMIZATION
+            return self.curt_optimization_level
 
-        # The optimisation starts with a local optimisation.
+        # The optimization starts with a local optimization.
         if iteration == 0:
-            self.curt_optimisation_level = self.LOCAL_OPTIMISATION
-            return self.curt_optimisation_level
+            self.curt_optimization_level = self.LOCAL_OPTIMIZATION
+            return self.curt_optimization_level
 
         LIMIT = (
             self.GLOBAL_LIMIT
-            if self.curt_optimisation_level == self.GLOBAL_OPTIMISATION
+            if self.curt_optimization_level == self.GLOBAL_OPTIMIZATION
             else self.LOCAL_LIMIT
         )
         # Keep performing current level while we don't have {limit}
         # consecutive failures.
         if 0 <= self.failures < LIMIT:
-            return self.curt_optimisation_level
+            return self.curt_optimization_level
 
-        # Switch optimisation if we have {limit} consecutive failures.
+        # Switch optimization if we have {limit} consecutive failures.
         else:
             # Re-initialise failure count.
             self.failures = 0
 
-            # Switch optimisation level.
-            if self.curt_optimisation_level == self.GLOBAL_OPTIMISATION:
-                self.curt_optimisation_level = self.LOCAL_OPTIMISATION
+            # Switch optimization level.
+            if self.curt_optimization_level == self.GLOBAL_OPTIMIZATION:
+                self.curt_optimization_level = self.LOCAL_OPTIMIZATION
             else:
-                self.curt_optimisation_level = self.GLOBAL_OPTIMISATION
+                self.curt_optimization_level = self.GLOBAL_OPTIMIZATION
 
-            return self.curt_optimisation_level
+            return self.curt_optimization_level
 
     def get_hypothesis_training_data(self, hypothesis: Hypothesis):
         """Get the training data for a hypothesis.
@@ -463,22 +459,19 @@ class HypBO:
     def collect_samples(
         self,
         sample: np.ndarray,
-        optimisation_level: str = "Global",
+        optimization_level: str = "Global"
     ) -> float:
         """Evaluate the sample, add it to the samples and return its value.
 
         Args:
             sample (np.ndarray): The sample to evaluate.
-            optimisation_level (str, optional): The level of optimization.
+            optimization_level (str, optional): The level of optimization.
                 Defaults to "Global".
 
         Returns:
             float: The evaluation of the sample.
         """
-        self.X.append(sample)
         value = self.func(sample)
-        self.y.append(value)
-        self.optimisation_levels.append(optimisation_level)
 
         if value > self.curt_best_value:
             self.curt_best_value = value
@@ -489,9 +482,9 @@ class HypBO:
         else:
             self.X = np.append(self.X, [sample], axis=0)
         self.y = np.append(self.y, value)
-        self.optimisation_levels = np.append(
-            self.optimisation_levels,
-            optimisation_level,
+        self.optimization_levels = np.append(
+            self.optimization_levels,
+            optimization_level,
         )
         return value
 
@@ -499,7 +492,7 @@ class HypBO:
         self,
         batch: int,
         hypotheses: List,
-        seed: int,
+        seed: int
     ) -> List:
         """
         Sample hypotheses from a list of given hypotheses.
@@ -562,11 +555,49 @@ class HypBO:
 
         return samples
 
+    def parallel_sampling(self, hypothesis, seed, hyp_num_samples, i):
+        # Get the local model
+        print(f"\t\tSampling hypothesis: {hypothesis.name}")
+        hypothesis_model = self._get_local_model(hypothesis=hypothesis)
+
+        # Get the training data for the hypothesis
+        hyp_X, hyp_y = self.get_hypothesis_training_data(hypothesis=hypothesis)
+
+        # Populate its dataset
+        for x, y in zip(hyp_X, hyp_y):
+            hypothesis_model.register(x, y)
+
+        # Sampling
+        proposed_hyp_samples = hypothesis_model.suggest(
+            hyp_num_samples,
+            multiprocessing=self.process_count,
+            seed=seed)
+        proposed_hyp_samples = self._check_samples_types(proposed_hyp_samples)
+
+        # Filter the samples that satisfy the hypothesis
+        proposed_hyp_samples = np.array([
+            s for s in proposed_hyp_samples if hypothesis.apply(s)
+        ])
+
+        # Compute the samples EI and add it as a column
+        eis = expected_improvement(
+            data=(hyp_X, hyp_y),
+            X=proposed_hyp_samples,
+            use_ei=True,
+            mu_sample_opt=self.curt_best_value,
+            seed=self.seed)
+        eis = eis.flatten()
+        proposed_hyp_samples = [
+            [proposed_hyp_samples[j], eis[j], i]
+            for j in range(len(proposed_hyp_samples))
+        ]
+        return proposed_hyp_samples
+
     def search(
         self,
         budget: int,
         n_init: int = 5,
-        batch: int = 1,
+        batch: int = 1
     ):
         """
         Perform a search optimization process.
@@ -588,127 +619,91 @@ class HypBO:
             scenario_name = '_'.join([c.name for c in self.hypotheses])
         else:
             scenario_name = "No hypothesis"
-        print(f"'{scenario_name}' optimisation has started...")
+        print(f"'{scenario_name}' optimization has started...")
 
         # For each iteration
         for idx in range(budget):
             print(f"{scenario_name} Iter {idx+1}/{budget}")
-            # Choose between global and local optimisations.
-            optimisation_level = self.get_optimisation_level(iteration=idx)
+            # Choose between global and local optimizations.
+            optimization_level = self.get_optimization_level(iteration=idx)
             level_log_message = "Global"
-            if optimisation_level == self.LOCAL_OPTIMISATION:
+            if optimization_level == self.LOCAL_OPTIMIZATION:
                 level_log_message = "Local"
-            print(f"\tOptimisation level: {level_log_message}")
-            optimisation_levels = []
+            print(f"\tOptimization level: {level_log_message}")
+            optimization_levels = []
             samples = []
 
-            # Local optimisation
-            if optimisation_level == self.LOCAL_OPTIMISATION:
+            # Local optimization
+            if optimization_level == self.LOCAL_OPTIMIZATION:
                 # Compute the number of samples we ask from each hypothesis
                 hyp_num_samples = int(
                     5 * np.ceil(batch / len(self.hypotheses)))
 
-                for i, hypothesis in enumerate(self.hypotheses):
-                    # Get the local model
-                    print(
-                        f"\t\tSampling hypothesis {hypothesis.name} - {i+1}/{len(self.hypotheses)}")
-                    hypothesis_model = self._get_local_model(
-                        hypothesis=hypothesis)
+                # Parallelize the sampling process using joblib
+                results = Parallel(n_jobs=min(
+                    self.process_count, len(self.hypotheses)))(
+                    delayed(self.parallel_sampling)(
+                        hypothesis, idx, hyp_num_samples, i)
+                    for i, hypothesis in enumerate(self.hypotheses)
+                )
 
-                    # Populate its dataset
-                    hyp_X, hyp_y = self.get_hypothesis_training_data(
-                        hypothesis=hypothesis)
-                    for x, y in zip(hyp_X, hyp_y):
-                        hypothesis_model.register(
-                            x,
-                            y,
-                        )
-
-                    # Sampling
-                    proposed_hyp_samples = hypothesis_model.suggest(
-                        hyp_num_samples,
-                        multiprocessing=self.process_count,
-                        seed=idx,
-                    )
-                    proposed_hyp_samples = self._check_samples_types(
-                        proposed_hyp_samples)
-
-                    _samples = []
-                    for hyp_sample in proposed_hyp_samples:
-                        if hypothesis.apply(hyp_sample):
-                            _samples.append(hyp_sample)
-                    proposed_hyp_samples = np.array(_samples)
-
-                    # Compute the samples EI and add it as a column
-                    eis = expected_improvement(
-                        data=(hyp_X, hyp_y),
-                        X=proposed_hyp_samples,
-                        use_ei=True,
-                        mu_sample_opt=self.curt_best_value,
-                        seed=self.seed,
-                    )
-                    eis = eis.flatten()
-                    proposed_hyp_samples = [
-                        [proposed_hyp_samples[j], eis[j], i]
-                        for j in range(
-                            len(proposed_hyp_samples),
-                        )
-                    ]
-                    samples.extend(proposed_hyp_samples)
-
-                # Sort the union of the conj samples by the descending EI
+                # Collect the results
+                for result in results:
+                    samples.extend(result)
                 samples = np.array(samples)
+
+                # Sort the union of the hypothesis samples by the descending EI
                 samples = samples[samples[:, 1].argsort()][::-1]
                 # keep the best ones
                 samples = samples[:batch]
                 # only keep the sample not the ei
-                optimisation_levels = [
+                optimization_levels = [
                     self.hypotheses[i].name for i in samples[:, 2]
                 ]
-                print(f"\t\t\tLocal(s): {optimisation_levels}")
+                print(f"\t\t\tLocal(s): {optimization_levels}")
                 samples = samples[:, 0].flatten()
 
-            # Global optimisation
+            # Global optimization
             else:
                 # Create the optimizer for the hypothesis
                 model_global = self.model(**self.model_kwargs)
 
                 # Populate its dataset
                 for x, y in zip(self.X, self.y):
-                    model_global.register(
-                        x,
-                        y,
-                    )
+                    model_global.register(x, y)
 
                 # Sampling
                 samples = model_global.suggest(
                     batch,
                     multiprocessing=self.process_count,
-                    seed=idx,
-                )
+                    seed=idx)
                 samples = self._check_samples_types(samples)
-                optimisation_levels = ["Global"] * batch
+                optimization_levels = ["Global"] * batch
 
             # Evaluation
             for i in range(len(samples)):
                 value = self.collect_samples(
                     sample=samples[i],
-                    optimisation_level=optimisation_levels[i],
+                    optimization_level=optimization_levels[i],
                 )
                 _sample_to_print = dict(zip(
                     self.feature_names,
-                    np.round(samples[i], 2),
-                ))
+                    np.round(samples[i], 2)))
                 print(f"\tSample {_sample_to_print} \t Target: {value:.3f}")
 
-                # Update the optimisation level success/failure
-                # local
+                # Update the optimization level success/failure count
                 curt_value = self.y[-1]
-                if curt_value >= self.curt_best_value + self.gamma:
+                threshold = None
+                if self.curt_best_value >= 0:
+                    threshold = (1 + self.gamma) * self.curt_best_value
+                else:
+                    threshold = (1 - self.gamma) * self.curt_best_value
+
+                if curt_value >= threshold:
                     self.failures = 0
                 else:
                     self.failures += 1
 
             print(f"\t Best target: {self.curt_best_value:.3f}")
 
-        print(f"{scenario_name} optimisation has finished.")
+        print(f"{scenario_name} optimization has finished.")

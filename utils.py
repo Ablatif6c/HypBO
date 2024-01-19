@@ -285,7 +285,7 @@ def get_function(
     for f_name, f in members:
         f_args = inspect.signature(f.__init__).parameters
         if inspect.isclass(f) and f_name != "TestProblem":
-            if f_name == name:
+            if f_name.lower() == name.lower():
                 test_problem = None
                 # If the function takes a dimension parameter.
                 if "d" in f_args:
@@ -934,7 +934,7 @@ def get_scenarios(
         return scenarios
 
     # Branin is a special case.
-    if func_name == "Branin":
+    if func_name.lower() == "branin":
         scenarios = _get_branin_hypotheses()
         return scenarios
 
@@ -944,7 +944,7 @@ def get_scenarios(
         dim=dim,
     )
     hypothesis_size = 2
-    if func_name == "StyblinskiTang":
+    if func_name.lower() == "styblinskitang":
         hypothesis_size = 0.4
     hypothesis_size = np.full(func.problem.dim, hypothesis_size, dtype=float)
     sol = func.problem.xopt

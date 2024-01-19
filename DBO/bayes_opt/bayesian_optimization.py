@@ -148,9 +148,10 @@ class BayesianOptimization(Observable):
                 self.dispatch(Events.OPTMIZATION_STEP)
 
     def initialize(
-            self,
-            n_init: int,
-            batch: int,):
+        self,
+        n_init: int,
+        batch: int
+    ):
         points = []
         for _ in range(n_init):
             if self.constraints:
