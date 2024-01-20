@@ -8,7 +8,7 @@ from typing import Optional
 
 import numpy as np
 
-from Hypothesis import Hypothesis
+from hypothesis import Hypothesis
 
 
 def from_unit_cube(

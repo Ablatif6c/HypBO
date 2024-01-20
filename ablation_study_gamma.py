@@ -9,12 +9,12 @@ given set of parameters. It takes the gamma value, function name, dimension,
 scenario, trial number, total number of trials, batch size, number of initial
 points, and optimization budget as input.
 
-The script runs the ablation study in parallel using multiprocessing.
+The script runs the ablation study in parallel using concurrent.futures.
 Each combination of gamma value, function, dimension, and scenario is
 processed in a separate process.
 
 """
-import multiprocessing
+import concurrent.futures
 import os
 from typing import List
 
@@ -22,7 +22,7 @@ import numpy as np
 
 from DBO.bayes_opt.bayesian_optimization import BayesianOptimization
 from hypbo import HypBO
-from Hypothesis import Hypothesis
+from hypothesis import Hypothesis
 from utils import get_function, get_scenario_name, get_scenarios
 
 
@@ -106,24 +106,28 @@ if __name__ == '__main__':
     ]
 
     # Define the parameters for the ablation study
-    trials = 10
+    trials = 20
     budget = 50
     n_init = 5
     batch = 1
 
     # Run the ablation study in parallel
     processes = []
-    for gamma in gamma_values:
-        for function_name, dimension in synthetic_functions:
-            all_scenarios = get_scenarios(function_name, dimension)[1:3]
-            for scenario in all_scenarios:
-                for trial in range(trials):
-                    process = multiprocessing.Process(target=run_hypbo, args=(
-                        gamma, function_name, dimension, scenario, trial,
-                        trials, batch, n_init, budget))
-                    processes.append(process)
-                    process.start()
+    for trial in range(trials):
+        for gamma in gamma_values:
+            for function_name, dimension in synthetic_functions:
+                all_scenarios = get_scenarios(function_name, dimension)[:3]
+                for scenario in all_scenarios:
+                    with concurrent.futures.ProcessPoolExecutor() as executor:
+                        for trial in range(trials):
+                            for gamma in gamma_values:
+                                for function_name, dimension in synthetic_functions:
+                                    all_scenarios = get_scenarios(
+                                        function_name, dimension)[:3]
+                                    for scenario in all_scenarios:
+                                        executor.submit(
+                                            run_hypbo, gamma, function_name, dimension, scenario, trial, trials, batch, n_init, budget)
 
-    # Wait for all processes to finish
-    for process in processes:
-        process.join()
+                # Wait for all processes to finish
+                for process in processes:
+                    process.join()

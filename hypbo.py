@@ -8,17 +8,12 @@ process. It takes a function to be optimized, a list of feature names, an
 optimization model, and other optional parameters. The optimization process
 can be parallelized using multiple processes.
 
-The expected_improvement function computes the Expected Improvement (EI) at
-points X based on existing samples X_sample and Y_sample using a Gaussian
-process surrogate model.
-
 The Hypothesis class represents a user-defined hypothesis. It provides
 methods to apply the hypothesis to input samples and convert it to a
 string representation.
 """
 
 import concurrent.futures
-import multiprocessing
 import os
 import warnings
 from copy import deepcopy
@@ -31,83 +26,9 @@ from scipy.stats import norm
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, Matern
 
-from Hypothesis import Hypothesis
+from hypothesis import Hypothesis
 
 warnings.filterwarnings("ignore")
-
-
-def expected_improvement(
-    data: Tuple[np.ndarray, np.ndarray],
-    X: np.ndarray,
-    xi: float = 0.0001,
-    use_ei: bool = True,
-    mu_sample_opt=None,
-    seed: int = 1,
-) -> np.ndarray:
-    """
-    Computes the Expected Improvement (EI) at points X based on existing
-    samples X_sample and Y_sample using a Gaussian process surrogate model.
-
-    Args:
-        data (Tuple[np.ndarray, np.ndarray]): The data to be used for the
-            Gaussian Process Regression, consisting of X_sample and Y_sample.
-            X_sample (np.ndarray): Sample locations (n x d) as a numpy array.
-            Y_sample (np.ndarray): Sample values (n x 1) as a numpy array.
-        X (np.ndarray): Points at which EI shall be computed (m x d) as a
-            numpy array.
-        xi (float, optional): Exploitation-exploration trade-off parameter.
-            Defaults to 0.0001.
-        use_ei (bool, optional): Whether to use Expected Improvement (EI) or
-            mean prediction (mu) as the acquisition function. Defaults to True.
-        mu_sample_opt (float, optional): The maximum value of the mean
-            prediction among the sample points. Defaults to None.
-        seed (int, optional): Random seed for reproducibility. Defaults to 1.
-
-    Returns:
-        np.ndarray: Expected improvements at points X as a numpy array.
-    """
-    # Unpack the data
-    X_sample, y_sample = data
-
-    # Create GPR
-    dim = X_sample.shape[1]
-    length_scale = [1] * dim
-    kernel = Matern(length_scale=length_scale,
-                    length_scale_bounds=(1e-01, 1e4),
-                    nu=2.5) * ConstantKernel(1.0, (0.5, 5))
-    gpr = GaussianProcessRegressor(
-        kernel=kernel,
-        alpha=1e-6,
-        normalize_y=False,
-        n_restarts_optimizer=10 * dim,
-        random_state=seed,
-    )
-
-    # Fit the GPR model
-    X_data, y_data = data
-    gpr.fit(X=X_data, y=y_data)
-
-    # Predict mean and standard deviation
-    mu, sigma = gpr.predict(
-        X,
-        return_std=True,
-    )
-
-    if not use_ei:
-        return mu
-    else:
-        # Calculate Expected Improvement (EI)
-        if mu_sample_opt is None:
-            mu_sample = gpr.predict(X_sample)
-            mu_sample_opt = np.max(mu_sample)
-        sigma = sigma.reshape(-1, 1)
-        with np.errstate(divide="warn"):
-            imp = mu - mu_sample_opt - xi
-            imp = imp.reshape((-1, 1))
-            Z = imp / sigma
-            ei = imp * norm.cdf(Z) + sigma * norm.pdf(Z)
-            ei[sigma == 0.0] = 0.0
-        return ei
 
 
 class HypBO:
@@ -119,7 +40,7 @@ class HypBO:
             model_kwargs: dict,
             hypotheses: List[Hypothesis] = [],
             seed: int = 0,
-            n_processes: int = multiprocessing.cpu_count(),
+            n_processes: int = concurrent.futures.ProcessPoolExecutor()._max_workers,
             discretization: bool = True,
             global_failure_limit: int = 5,
             local_failure_limit: int = 2,
@@ -175,6 +96,83 @@ class HypBO:
         self.GLOBAL_OPTIMIZATION = 0
         self.LOCAL_OPTIMIZATION = 1
         self.curt_optimization_level = self.GLOBAL_OPTIMIZATION
+
+    def expected_improvement(self,
+                             data: Tuple[np.ndarray, np.ndarray],
+                             X: np.ndarray,
+                             xi: float = 0.0001,
+                             use_ei: bool = True,
+                             mu_sample_opt=None,
+                             seed: int = 1,
+                             ) -> np.ndarray:
+        """
+        Computes the Expected Improvement (EI) at points X based on existing
+        samples X_sample and Y_sample using a Gaussian process surrogate model.
+
+        Args:
+            data (Tuple[np.ndarray, np.ndarray]): The data to be used for the
+                Gaussian Process Regression, consisting of X_sample and
+                Y_sample.
+                X_sample (np.ndarray): Sample locations (n x d) as a numpy
+                    array.
+                Y_sample (np.ndarray): Sample values (n x 1) as a numpy array.
+            X (np.ndarray): Points at which EI shall be computed (m x d) as a
+                numpy array.
+            xi (float, optional): Exploitation-exploration trade-off parameter.
+                Defaults to 0.0001.
+            use_ei (bool, optional): Whether to use Expected Improvement (EI)
+                or mean prediction (mu) as the acquisition function.
+                Defaults to True.
+            mu_sample_opt (float, optional): The maximum value of the mean
+                prediction among the sample points. Defaults to None.
+            seed (int, optional): Random seed for reproducibility.
+                Defaults to 1.
+
+        Returns:
+            np.ndarray: Expected improvements at points X as a numpy array.
+        """
+        # Unpack the data
+        X_sample, y_sample = data
+
+        # Create GPR
+        dim = X_sample.shape[1]
+        length_scale = [1] * dim
+        kernel = Matern(length_scale=length_scale,
+                        length_scale_bounds=(1e-01, 1e4),
+                        nu=2.5) * ConstantKernel(1.0, (0.5, 5))
+        gpr = GaussianProcessRegressor(
+            kernel=kernel,
+            alpha=1e-6,
+            normalize_y=False,
+            n_restarts_optimizer=10 * dim,
+            random_state=seed,
+        )
+
+        # Fit the GPR model
+        X_data, y_data = data
+        gpr.fit(X=X_data, y=y_data)
+
+        # Predict mean and standard deviation
+        mu, sigma = gpr.predict(
+            X,
+            return_std=True,
+        )
+
+        if not use_ei:
+            return mu
+        else:
+            # Calculate Expected Improvement (EI)
+            if mu_sample_opt is None:
+                mu_sample = gpr.predict(X_sample)
+                mu_sample_opt = np.max(mu_sample)
+            sigma = sigma.reshape(-1, 1)
+            with np.errstate(divide="warn"):
+                imp = mu - mu_sample_opt - xi
+                imp = imp.reshape((-1, 1))
+                Z = imp / sigma
+                ei = imp * norm.cdf(Z) + sigma * norm.pdf(Z)
+                ei[sigma == 0.0] = 0.0
+            return ei
 
     def save_data(
             self,
@@ -329,14 +327,11 @@ class HypBO:
         """
         # Hypothesis (local) - Lower level initialization
         if self.has_hypotheses():
-            # Use a multiprocessing manager list for self.X_init
-            # so that all processes can access it and add to it
-            manager = multiprocessing.Manager()
-            self.X_init = manager.list()
-            with concurrent.futures.ProcessPoolExecutor(
+            self.X_init = []  # manager.list()
+            with concurrent.futures.ThreadPoolExecutor(
                     max_workers=min(self.process_count, len(self.hypotheses))
             ) as executor:
-                futures = [executor.submit(
+                _ = [executor.submit(
                     self.append_hypothesis_initial_samples,
                     batch,
                     hypothesis
@@ -346,11 +341,6 @@ class HypBO:
             for sample, hyp_name in self.X_init:
                 self.collect_samples(
                     sample=sample, optimization_level=hyp_name)
-
-            self.X_init = list(self.X_init)
-
-            # Explicitly terminate the manager processes
-            manager.shutdown()
 
         # Global - Upper level initialization
         n_init_hyp = len(self.X)
@@ -537,7 +527,7 @@ class HypBO:
             proposed_hyp_samples = np.array(_samples)
 
             # Compute the samples EI and add it as a column
-            eis = expected_improvement(
+            eis = self.expected_improvement(
                 data=(hypo_x, hypo_y),
                 X=proposed_hyp_samples,
                 use_ei=True,
@@ -554,6 +544,19 @@ class HypBO:
             samples.extend(proposed_hyp_samples)
 
         return samples
+
+    def get_scenario_name(self) -> str:
+        """Returns a name for the search.
+
+        Returns:
+            str: Scenario name for the search.
+        """
+        scenario_name = ""
+        if self.has_hypotheses():
+            scenario_name = '_'.join([c.name for c in self.hypotheses])
+        else:
+            scenario_name = "No hypothesis"
+        return scenario_name
 
     def parallel_sampling(self, hypothesis, seed, hyp_num_samples, i):
         # Get the local model
@@ -580,7 +583,7 @@ class HypBO:
         ])
 
         # Compute the samples EI and add it as a column
-        eis = expected_improvement(
+        eis = self.expected_improvement(
             data=(hyp_X, hyp_y),
             X=proposed_hyp_samples,
             use_ei=True,
@@ -614,11 +617,7 @@ class HypBO:
         self.initialize_data(n_init, batch)
 
         # Print the scenario name
-        scenario_name = ""
-        if self.has_hypotheses():
-            scenario_name = '_'.join([c.name for c in self.hypotheses])
-        else:
-            scenario_name = "No hypothesis"
+        scenario_name = self.get_scenario_name()
         print(f"'{scenario_name}' optimization has started...")
 
         # For each iteration
@@ -636,14 +635,14 @@ class HypBO:
             # Local optimization
             if optimization_level == self.LOCAL_OPTIMIZATION:
                 # Compute the number of samples we ask from each hypothesis
-                hyp_num_samples = int(
+                num_samples_per_hyp = int(
                     5 * np.ceil(batch / len(self.hypotheses)))
 
                 # Parallelize the sampling process using joblib
                 results = Parallel(n_jobs=min(
                     self.process_count, len(self.hypotheses)))(
                     delayed(self.parallel_sampling)(
-                        hypothesis, idx, hyp_num_samples, i)
+                        hypothesis, idx, num_samples_per_hyp, i)
                     for i, hypothesis in enumerate(self.hypotheses)
                 )
 
@@ -682,6 +681,7 @@ class HypBO:
 
             # Evaluation
             for i in range(len(samples)):
+                previous_best_value = self.curt_best_value
                 value = self.collect_samples(
                     sample=samples[i],
                     optimization_level=optimization_levels[i],
@@ -694,10 +694,10 @@ class HypBO:
                 # Update the optimization level success/failure count
                 curt_value = self.y[-1]
                 threshold = None
-                if self.curt_best_value >= 0:
-                    threshold = (1 + self.gamma) * self.curt_best_value
+                if previous_best_value >= 0:
+                    threshold = (1 + self.gamma) * previous_best_value
                 else:
-                    threshold = (1 - self.gamma) * self.curt_best_value
+                    threshold = (1 - self.gamma) * previous_best_value
 
                 if curt_value >= threshold:
                     self.failures = 0

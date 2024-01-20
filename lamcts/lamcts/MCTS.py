@@ -1,4 +1,4 @@
-"""This module contains the Monte Carlo Tree Searh with hypothesis algorithm.
+"""This module contains the Monte Carlo Tree Search with hypothesis algorithm.
 
 The rest of this docstring should contain an
 overall description of the module or program.  Optionally, it may also
@@ -24,7 +24,7 @@ from typing import List, Literal, Optional, Tuple
 
 import numpy as np
 
-from Hypothesis import Hypothesis
+from hypothesis import Hypothesis
 
 from .Node import Node
 from .utils import sample_region

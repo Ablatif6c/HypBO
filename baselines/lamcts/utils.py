@@ -3,7 +3,7 @@ import inspect
 import numpy as np
 
 import resources.functions.standard_test_functions as fcts
-from Hypothesis import Hypothesis
+from hypothesis import Hypothesis
 from resources.functions.her_function import HER
 from resources.functions.test_problem import TestProblem
 

@@ -24,7 +24,7 @@ from typing import List, Literal, Optional, Tuple
 
 import numpy as np
 
-from Hypothesis import Hypothesis
+from hypothesis import Hypothesis
 
 from .Node import Node
 from .utils import sample_region

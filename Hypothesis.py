@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from scipy.optimize import linprog
@@ -8,13 +8,13 @@ class Hypothesis:
     def __init__(
         self,
         name: str,
-        lb: np.array,
-        ub: np.array,
+        lb: np.ndarray,
+        ub: np.ndarray,
         feature_names: List[str] = [],
-        coeff_inequalities: np.array = None,
-        const_inequalities: np.array = None,
-        coeff_equalities: np.array = None,
-        const_equalities: np.array = None,
+        coeff_inequalities: Optional[np.ndarray] = None,
+        const_inequalities: Optional[np.ndarray] = None,
+        coeff_equalities: Optional[np.ndarray] = None,
+        const_equalities: Optional[np.ndarray] = None,
     ) -> None:
 
         if (
@@ -44,7 +44,7 @@ class Hypothesis:
         self.samples = []
         self.sol_bounds = self.__get_sol_bounds()
 
-    def __get_sol_bounds(self) -> Tuple[np.array, np.array]:
+    def __get_sol_bounds(self) -> Tuple[np.ndarray, np.ndarray]:
         """Returns the new bounds of the features satisfying the hypotheses"""
         dims = len(self.lb)
         bounds = [(self.lb[i], self.ub[i]) for i in range(dims)]

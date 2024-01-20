@@ -13,7 +13,7 @@ from typing import List
 
 from DBO.bayes_opt.bayesian_optimization import BayesianOptimization
 from hypbo import HypBO
-from Hypothesis import Hypothesis
+from hypothesis import Hypothesis
 from utils import get_function, get_scenario_name, get_scenarios
 
 # Initialize parser
