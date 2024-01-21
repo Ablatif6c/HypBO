@@ -117,17 +117,11 @@ if __name__ == '__main__':
         for gamma in gamma_values:
             for function_name, dimension in synthetic_functions:
                 all_scenarios = get_scenarios(function_name, dimension)[:3]
-                for scenario in all_scenarios:
-                    with concurrent.futures.ProcessPoolExecutor() as executor:
-                        for trial in range(trials):
-                            for gamma in gamma_values:
-                                for function_name, dimension in synthetic_functions:
-                                    all_scenarios = get_scenarios(
-                                        function_name, dimension)[:3]
-                                    for scenario in all_scenarios:
-                                        executor.submit(
-                                            run_hypbo, gamma, function_name, dimension, scenario, trial, trials, batch, n_init, budget)
-
-                # Wait for all processes to finish
-                for process in processes:
-                    process.join()
+                with concurrent.futures.ProcessPoolExecutor() as executor:
+                    futures = []
+                    for scenario in all_scenarios:
+                        future = executor.submit(
+                            run_hypbo, gamma, function_name, dimension,
+                            scenario, trial, trials, batch, n_init, budget)
+                        futures.append(future)
+                    concurrent.futures.wait(futures)
