@@ -162,23 +162,35 @@ def save_all_results_in_one_file(ablation_dir: str):
     # Create file path.
     all_results_file = os.path.join(ablation_dir, "all_results.csv")
 
-    all_results = all_results.reindex(columns=[
-        all_results.columns[0],
-        'u10_l1',
-        'u10_l2',
-        'u10_l3',
-        'u10_l4',
-        'u10_l5',
-        'u10_l6',
-        'u10_l7',
-        'u10_l8',
-        'u10_l9',
-        'u10_l10',
-        'u1_l10',
-        'u5_l2',
-        'Function',
-        'Hypotheses']
-    )
+    # Rename the columns to match the names in the paper.
+    if "Poor_Weak" in all_results["Hypotheses"].values and "Weak_Poor" in all_results["Hypotheses"].values:
+        all_results["Hypotheses"] = all_results["Hypotheses"].replace(
+            "Poor_Weak", "Weak_Poor")
+    if "Poor_Good" in all_results["Hypotheses"].values and "Good_Poor" in all_results["Hypotheses"].values:
+        all_results["Hypotheses"] = all_results["Hypotheses"].replace(
+            "Poor_Good", "Good_Poor")
+    if "Weak_Good" in all_results["Hypotheses"].values and "Good_Weak" in all_results["Hypotheses"].values:
+        all_results["Hypotheses"] = all_results["Hypotheses"].replace(
+            "Weak_Good", "Good_Weak")
+
+    if "u_l" in ablation_dir:
+        all_results = all_results.reindex(columns=[
+            all_results.columns[0],
+            'u10_l1',
+            'u10_l2',
+            'u10_l3',
+            'u10_l4',
+            'u10_l5',
+            'u10_l6',
+            'u10_l7',
+            'u10_l8',
+            'u10_l9',
+            'u10_l10',
+            'u1_l10',
+            'u5_l2',
+            'Function',
+            'Hypotheses']
+        )
     all_results.to_csv(all_results_file, index=False)  # Save all_results.
 
 
@@ -220,12 +232,25 @@ if __name__ == "__main__":
     ]
 
     # Ablation studies
-    do_ablation_study_u_l = True
+    do_ablation_study_u_l = False
     if do_ablation_study_u_l:
         ablation_dir = os.path.join("data", "ablation_studies", "u_l")
-        # ablation_studies_bsf(test_functions=test_synthetic_functions,
-        #                     ablation_dir=ablation_dir)
-        # save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)
+        ablation_studies_bsf(test_functions=test_synthetic_functions,
+                             ablation_dir=ablation_dir)
+        save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)
+        save_all_results_in_one_file(ablation_dir=ablation_dir)
+
+    do_ablation_study_gamma = True
+    if do_ablation_study_gamma:
+        gamma_test_synthetic_functions = [
+            ("Branin", 2),
+            ("Sphere", 2),
+            ("Ackley", 5),
+        ]
+        ablation_dir = os.path.join("data", "ablation_studies", "gamma")
+        ablation_studies_bsf(test_functions=gamma_test_synthetic_functions,
+                             ablation_dir=ablation_dir)
+        save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)
         save_all_results_in_one_file(ablation_dir=ablation_dir)
 
     # Benchmarks

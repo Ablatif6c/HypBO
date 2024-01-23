@@ -327,7 +327,7 @@ class HypBO:
         """
         # Hypothesis (local) - Lower level initialization
         if self.has_hypotheses():
-            self.X_init = []  # manager.list()
+            self.X_init = []
             with concurrent.futures.ThreadPoolExecutor(
                     max_workers=min(self.process_count, len(self.hypotheses))
             ) as executor:
@@ -558,7 +558,23 @@ class HypBO:
             scenario_name = "No hypothesis"
         return scenario_name
 
-    def parallel_sampling(self, hypothesis, seed, hyp_num_samples, i):
+    def parallel_sampling(self, hypothesis: Hypothesis, seed: int,
+                          hyp_num_samples: int, i: int
+                          ) -> List[List[float], float, int]:
+        """
+        Perform parallel sampling for a given hypothesis.
+
+        Args:
+            hypothesis (Hypothesis): The hypothesis to sample from.
+            seed (int): The seed for random number generation.
+            hyp_num_samples (int): The number of samples to generate.
+            i (int): The index of the hypothesis.
+
+        Returns:
+            List[List[float], float, int]: A list of proposed samples, each
+                containing the sample, its expected improvement, and the
+                hypothesis index.
+        """
         # Get the local model
         print(f"\t\tSampling hypothesis: {hypothesis.name}")
         hypothesis_model = self._get_local_model(hypothesis=hypothesis)
@@ -634,13 +650,14 @@ class HypBO:
 
             # Local optimization
             if optimization_level == self.LOCAL_OPTIMIZATION:
+                num_hypotheses = len(self.hypotheses)
                 # Compute the number of samples we ask from each hypothesis
                 num_samples_per_hyp = int(
-                    5 * np.ceil(batch / len(self.hypotheses)))
+                    5 * np.ceil(batch / num_hypotheses))
 
                 # Parallelize the sampling process using joblib
                 results = Parallel(n_jobs=min(
-                    self.process_count, len(self.hypotheses)))(
+                    self.process_count, num_hypotheses))(
                     delayed(self.parallel_sampling)(
                         hypothesis, idx, num_samples_per_hyp, i)
                     for i, hypothesis in enumerate(self.hypotheses)

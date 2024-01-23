@@ -14,6 +14,7 @@ Each combination of gamma value, function, dimension, and scenario is
 processed in a separate process.
 
 """
+
 import concurrent.futures
 import os
 from typing import List

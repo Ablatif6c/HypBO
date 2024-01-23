@@ -866,7 +866,7 @@ def _get_branin_hypotheses() -> List[List[Hypothesis]]:
         coeff_equalities=coeff_equalities,
         const_equalities=const_equalities,
     )
-    bad = [hyp_bad]
+    weak = [hyp_bad]
 
     # Good
     coeff_equalities = None
@@ -901,11 +901,11 @@ def _get_branin_hypotheses() -> List[List[Hypothesis]]:
 
     scenarios = [
         poor,
-        bad,
+        weak,
         good,
-        poor + good,
-        bad + good,
-        poor + bad,
+        good + poor,
+        good + weak,
+        weak + poor,
     ]
     return scenarios
 
