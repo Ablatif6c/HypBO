@@ -162,16 +162,16 @@ def save_all_results_in_one_file(ablation_dir: str):
     # Create file path.
     all_results_file = os.path.join(ablation_dir, "all_results.csv")
 
-    # Rename the columns to match the names in the paper.
-    if "Poor_Weak" in all_results["Hypotheses"].values and "Weak_Poor" in all_results["Hypotheses"].values:
-        all_results["Hypotheses"] = all_results["Hypotheses"].replace(
-            "Poor_Weak", "Weak_Poor")
-    if "Poor_Good" in all_results["Hypotheses"].values and "Good_Poor" in all_results["Hypotheses"].values:
-        all_results["Hypotheses"] = all_results["Hypotheses"].replace(
-            "Poor_Good", "Good_Poor")
-    if "Weak_Good" in all_results["Hypotheses"].values and "Good_Weak" in all_results["Hypotheses"].values:
-        all_results["Hypotheses"] = all_results["Hypotheses"].replace(
-            "Weak_Good", "Good_Weak")
+    # # Rename the columns to match the names in the paper.
+    # if "Poor_Weak" in all_results["Hypotheses"].values and "Weak_Poor" in all_results["Hypotheses"].values:
+    #     all_results["Hypotheses"] = all_results["Hypotheses"].replace(
+    #         "Poor_Weak", "Weak_Poor")
+    # if "Poor_Good" in all_results["Hypotheses"].values and "Good_Poor" in all_results["Hypotheses"].values:
+    #     all_results["Hypotheses"] = all_results["Hypotheses"].replace(
+    #         "Poor_Good", "Good_Poor")
+    # if "Weak_Good" in all_results["Hypotheses"].values and "Good_Weak" in all_results["Hypotheses"].values:
+    #     all_results["Hypotheses"] = all_results["Hypotheses"].replace(
+    #         "Weak_Good", "Good_Weak")
 
     if "u_l" in ablation_dir:
         all_results = all_results.reindex(columns=[
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     ]
 
     # Ablation studies
-    do_ablation_study_u_l = False
+    do_ablation_study_u_l = True
     if do_ablation_study_u_l:
         ablation_dir = os.path.join("data", "ablation_studies", "u_l")
         ablation_studies_bsf(test_functions=test_synthetic_functions,
@@ -240,7 +240,7 @@ if __name__ == "__main__":
         save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)
         save_all_results_in_one_file(ablation_dir=ablation_dir)
 
-    do_ablation_study_gamma = True
+    do_ablation_study_gamma = False
     if do_ablation_study_gamma:
         gamma_test_synthetic_functions = [
             ("Branin", 2),

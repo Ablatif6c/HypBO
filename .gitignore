@@ -165,6 +165,5 @@ requirements_dev.txt
 .vscode/
 data/hypbo_and_baselines/__hypbo_and_baselines/
 _chop_results.py
-_time_spent.py
 _rename_folder_and_files.py
 data/ablation_studies/_gamma/
