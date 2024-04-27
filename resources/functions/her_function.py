@@ -1,3 +1,9 @@
+"""
+This script defines the Photocatalytic Hydrogen Production experiment whose
+objective is to maximize the Hydrogen Evolution Rate (HER)[Burger et al. 2020].
+It uses the HER model as the black-box function.
+"""
+
 import os
 import pickle
 
@@ -13,7 +19,7 @@ class HER:
     def __init__(
             self,
             noisy=False,
-            ):
+    ):
         # Model
         path = os.path.join(
             "resources",

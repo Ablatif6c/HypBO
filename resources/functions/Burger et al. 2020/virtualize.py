@@ -1,3 +1,8 @@
+"""
+This script virtualizes the Photocatalytic Hydrogen Production from the
+experimental data provided by the authors of Burger et al. 2020.
+"""
+
 import os
 import pickle
 
@@ -30,16 +35,16 @@ kernel = Matern(length_scale=length_scale,
                 nu=2.5)
 kernel *= ConstantKernel(1.0, (0.5, 5))
 kernel += WhiteKernel(
-                    noise_level=0.1,
-                    noise_level_bounds=(5e-02, 7e-1)
-                    )
+    noise_level=0.1,
+    noise_level_bounds=(5e-02, 7e-1)
+)
 model = GaussianProcessRegressor(
-                            kernel=kernel,
-                            alpha=1e-6,
-                            normalize_y=False,
-                            n_restarts_optimizer=10 * dim,
-                            random_state=random_state,
-                            )
+    kernel=kernel,
+    alpha=1e-6,
+    normalize_y=False,
+    n_restarts_optimizer=10 * dim,
+    random_state=random_state,
+)
 
 # Get X and y data
 suffix = "sc"
@@ -52,7 +57,7 @@ model.fit(X=X_train, y=y_train)
 model_path = os.path.join(
     "virtual_models",
     f"virtual_model_{suffix}.pkl",
-    )
+)
 file = open(model_path, "wb")
 
 # dump information to that file

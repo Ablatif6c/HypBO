@@ -89,9 +89,8 @@ feature_names = list(pbounds.keys())
 
 
 def run_scenario(
-    scenario=[],
-    seed: int = 0,
-):
+        scenario=[],
+        seed: int = 0):
     """
     Run a single scenario of the Photocatalytic Hydrogen Production experiment.
 
@@ -119,27 +118,27 @@ def run_scenario(
         model_kwargs=model_kwargs,
         hypotheses=scenario,
         seed=seed,
-        n_processes=n_processes,
+        n_processes=n_processes
     )
 
     # Perform the search
     hbo.search(
         budget=budget,
         n_init=n_init,
-        batch=batch,
+        batch=batch
     )
 
     # Save the data
     hbo.save_data(
         func_name=func.name,
         scenario_name=scenario_name,
-        seed=seed,
+        seed=seed
     )
 
 
 def multiprocess_her_experiment():
     """
-    Run a the Photocatalytic Hydrogen Production experiment.
+    Run the Photocatalytic Hydrogen Production experiment.
     """
     # Print the function name being processed
     print(f"Processing HER... seed: {seed}")
@@ -152,7 +151,7 @@ def multiprocess_her_experiment():
     for scenarios in scenarios_list[:1]:
         process = Process(
             target=run_scenario,
-            args=(scenarios, seed),
+            args=(scenarios, seed)
         )
         process.start()
         processes.append(process)

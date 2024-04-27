@@ -1,10 +1,10 @@
-# Accelerating Black-Box Scientific Experiments using Experts' Hypotheses
+# HypBO: Accelerating Black-Box Scientific Experiments using Experts' Hypotheses
 
 ## Overview
 
-This repository contains the source code and associated materials for the "Accelerating Black-Box Scientific Experiments using Experts' Hypotheses" research paper. This codebase allows for the replication of the experiments and findings presented in the paper.
+This repository contains the source code and associated materials for the HypBO algorithm from the **_HypBO: Accelerating Black-Box Scientific Experiments using Experts' Hypotheses_** paper appearing in IJCAI 2024. This codebase allows for the replication of the experiments and findings presented in the paper.
 
-Bayesian optimization (BO) is a popular optimization method for scientific problems. However, the search spaces can be large and daunting. To solve this, we propose HypBO, which uses expert human-defined hypotheses to generate improved seed samples to feed into BO. This improves the search performance and has been validated on various synthetic functions and a real chemical design task.
+Bayesian optimization (BO) is a popular optimization method for scientific problems. However, the search spaces can be large and daunting. To solve this, we propose Hypothesis Bayesian Optimization (HypBO), which uses expert human-defined hypotheses to generate improved seed samples to feed into BO. This improves the search performance and has been validated on various synthetic functions and a real chemical design task.
 
 ## Table of Contents
 
@@ -19,8 +19,6 @@ Bayesian optimization (BO) is a popular optimization method for scientific probl
 ## Getting Started
 
 These instructions will help you get a copy of the project up and running on your local machine for development and testing purposes.
-
-This repository has been anonymized and is hosted on [Anonymous Github](https://anonymous.4open.science/r/HypBO/) to not break the double-blind review. Although on that website, you can download one file at a time, there is no functionality to download the full repository at once. However, they are some Github projects which allow to download entire Anonymous Github repositories at once such as [clone-anonymous-github](https://github.com/fedebotu/clone-anonymous-github).
 
 ### Prerequisites
 
@@ -56,41 +54,45 @@ After downloading the HypBO repository, the installation steps depends on whethe
 1. First, make sure you have Python3.8 installed on your machine. If not, you can download it from the [Python website](https://www.python.org/downloads/).
 2. Open a terminal or command prompt.
 3. Navigate to the HypBO directory where to create the virtual environment. You can do this with the `cd` command by typing `cd HypBO`.
-4. Once you're in the directory, you can create the virtual environment with the `python -m venv` command by running `python3.8 -m venv .hypbo`.
+4. Once you're in the directory, you can create the virtual environment with the `python -m venv` command by running `python3.8 -m venv .venv`.
 5. After the virtual environment is created, you can activate it. The command to do this depends on your operating system:
    - On Windows, type `.hypbo\Scripts\activate`.
    - On Unix or MacOS, type `source .hypbo/bin/activate`.
-6. Once the `.hypbo` virtual environment is activated, your terminal or command prompt should show the name of the virtual environment.
-7. You can now install the required packages into the `.hypbo` virtual environment using `pip install -r requirements.txt`.
+6. Once the `.venv` virtual environment is activated, your terminal or command prompt should show the name of the virtual environment.
+7. You can now install the required packages into the `.venv` virtual environment using `pip install -r requirements.txt`.
 
 ## Usage
 
-Note that HypBO is a maximizing optimizer.
+Note that HypBO is a maximizing optimizer. Please make sure you reformulate potential minimization problems.
 
 ### Synthetic Functions
 
 The synthetic function for testing optimization algorithms are taken from the [Virtual Library of Simulation Experiments](https://www.sfu.ca/~ssurjano/optimization.html) and implemented in the `resources` folder where you will find an exhaustive list of those synthetic functions.
 
 To run the synthetic function experiments, run the file `main_continuous.py`. It runs the HypBO algorithm for the given:
-    - function `func_name`
-    - function dimension `dim`
-    - starting seed `seed_start`. Defaults to 0.
-    - seed count `seed_count`. Defaults to 2.
-    - initial sample count `n_init`. Defaults to 5.
-    - budget `budget`. Defaults to 10.
-    - batch size `batch`. Defaults to 1.
-It also saves the optimization data in `data/hypbo_and_baselines`.
+
+- function `func_name`
+- function dimension `dim`
+- starting seed `seed_start`. Defaults to 0.
+- seed count `seed_count`. Defaults to 2.
+- initial sample count `n_init`. Defaults to 5.
+- budget `budget`. Defaults to 10.
+- batch size `batch`. Defaults to 1.
+
+It also saves the optimization data in `data/hypbo_and_baselines/hypbo/{func_name}_{dim}`.
 
 For example to run the Branin d2 function with 5 initial samples, a budget of 100 iterations and 10 trials, run: `python main_continuous.py --func_name Branin --dim 2 --n_init 5 --budget 100 --seed_count 10`.
 
 ### Photocatalytic Hydrogen Production
 
 To run the Photocatalytic Hydrogen Production experiment, run the file `main_discrete.py`. It runs the HypBO algorithm for the given:
-    - seed `seed`. Defaults to 0.
-    - initial sample count `n_init`. Defaults to 5.
-    - budget `budget`. Defaults to 10.
-    - batch size `batch`. Defaults to 1.
-It also saves the optimization data in `data/hypbo_and_baselines`.
+
+- seed `seed`. Defaults to 0.
+- initial sample count `n_init`. Defaults to 5.
+- budget `budget`. Defaults to 10.
+- batch size `batch`. Defaults to 1.
+
+It also saves the optimization data in `data/hypbo_and_baselines/hypbo/HER`.
 
 For example to run the Photocatalytic Hydrogen Production experiment with 10 initial samples and a budget of 100 iterations run: `python main_discrete.py --n_init 5 --budget 100`.
 
@@ -100,9 +102,21 @@ Details on how to use the baseline methods can be found in their respective sub-
 
 ## Citation
 
-This code and the results generated from it are used in the "Accelerating Black-Box Scientific Experiments using Experts' Hypotheses" research paper.
+Please cite us as:
+
+```
+@inproceedings{cisse2024hypbo,
+  title = {HypBO: Accelerating Black-Box Scientific Experiments using Experts' Hypotheses},
+  author = {Cisse, Abdoulatif and Evangelopoulos, Xenophon and Carruthers, Sam and Gusev, Vadimir V and Cooper, Andrew I},
+  booktitle = {Proceedings of the Thirty-Third International Joint Conference on Artificial Intelligence, {IJCAI-24}},
+  publisher = {International Joint Conferences on Artificial Intelligence Organization},
+  year      = {2024},
+  note      = {Main Track}
+}
+```
+
+An extended version of the paper which includes the Supplementary Material can be found at [arXiv:2308.117870](https://arxiv.org/abs/2308.117870).
 
 ## License
 
 [MIT license](https://opensource.org/license/mit/)
-

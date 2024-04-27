@@ -17,7 +17,7 @@ import concurrent.futures
 import os
 import warnings
 from copy import deepcopy
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore")
 class HypBO:
     def __init__(
             self,
-            func: callable,
+            func: Callable,
             feature_names: List[str],
             model,
             model_kwargs: dict,
@@ -80,8 +80,9 @@ class HypBO:
         self.feature_names = feature_names
         self.seed = seed
         self.hypotheses = hypotheses
-        self.X = []
-        self.y = []
+        self.X = []     # Saves all the samples including the initial ones
+        self.y = []     # Saves all the targets including the initial ones
+        self.X_init = []
 
         # Tracking
         self.curt_best_value = -np.inf
@@ -179,8 +180,7 @@ class HypBO:
             func_name: str,
             scenario_name: str,
             seed: int = 0,
-            folder_path: str = os.path.join("data", "hypbo_and_baselines"),
-    ):
+            folder_path: str = os.path.join("data", "hypbo_and_baselines")):
         """Save the collected data to a CSV file.
 
         Args:
@@ -312,10 +312,9 @@ class HypBO:
                 self.X_init.append((new_sample, hypothesis.name))
 
     def initialize_data(
-        self,
-        n_init: int,
-        batch: int,
-    ):
+            self,
+            n_init: int,
+            batch: int):
         """Initialize the data for optimization.
 
         This method initializes the data for optimization by
@@ -447,10 +446,9 @@ class HypBO:
         return (hypothesis_X, hypothesis_y)
 
     def collect_samples(
-        self,
-        sample: np.ndarray,
-        optimization_level: str = "Global"
-    ) -> float:
+            self,
+            sample: np.ndarray,
+            optimization_level: str = "Global") -> float:
         """Evaluate the sample, add it to the samples and return its value.
 
         Args:
@@ -479,11 +477,10 @@ class HypBO:
         return value
 
     def sample_hypotheses(
-        self,
-        batch: int,
-        hypotheses: List,
-        seed: int
-    ) -> List:
+            self,
+            batch: int,
+            hypotheses: List,
+            seed: int) -> List:
         """
         Sample hypotheses from a list of given hypotheses.
 
@@ -613,11 +610,10 @@ class HypBO:
         return proposed_hyp_samples
 
     def search(
-        self,
-        budget: int,
-        n_init: int = 5,
-        batch: int = 1
-    ):
+            self,
+            budget: int,
+            n_init: int = 5,
+            batch: int = 1):
         """
         Perform a search optimization process.
 

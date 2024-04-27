@@ -125,10 +125,9 @@ lower_limit = args.lower_limit
 
 
 def run_hypbo(
-    func,
-    scenarios: List[List[Hypothesis]],
-    seed: int = 0,
-):
+        func,
+        scenarios: List[List[Hypothesis]],
+        seed: int = 0):
     """
     Run the HypBO optimization algorithm.
 
@@ -209,13 +208,14 @@ def multiprocess_synthetic_experiment(
     # Get the function based on the given name and dimension
     func = get_function(
         dim=dim,
-        name=func_name,
+        name=func_name
     )
 
     # Get the last two scenarios for the given function name and dimension
     hypotheses = get_scenarios(
         func_name=func_name,
-        dim=dim)
+        dim=dim
+    )
 
     # Iterate over the range of seeds
     for seed in range(seed_start, seed_start + seed_count):

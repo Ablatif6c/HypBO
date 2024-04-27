@@ -150,7 +150,8 @@ def get_weak_hypothesis(
             ub[i] - sol[i],
         ]
         max_size = max(diffs)
-        assert max_size > size[i], f"The hypothesis size at index {i} is too big that it contains the solution."
+        assert max_size > size[i], f"The hypothesis size at index {
+            i} is too big that it contains the solution."
 
         side = np.argmax(diffs)
         # hypothesis must be placed between the lower bound and the solution.
