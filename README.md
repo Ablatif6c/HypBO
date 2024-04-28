@@ -115,7 +115,7 @@ Please cite us as:
 }
 ```
 
-An extended version of the paper which includes the Supplementary Material can be found at [arXiv:2308.117870](https://arxiv.org/abs/2308.117870).
+An extended version of the paper which includes the Supplementary Material can be found at [arXiv:2308.11787](https://arxiv.org/abs/2308.117870).
 
 ## License
 
