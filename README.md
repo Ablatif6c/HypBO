@@ -44,10 +44,11 @@ After downloading the HypBO repository, the installation steps depends on whethe
 8. Open a terminal or command prompt.
 9. Navigate to the HypBO directory that contains the Dockerfile. You can do this with the `cd` command. For example, you would type `cd HypBO`.
 10. Once you're in the HypBO directory, you can build the Docker image with the `docker build` command by typing `docker build -t hypbo .`.
-11. After the image is built, you can create a container from it with the `docker run` command. For example, `docker run -d -p 8080:80 hypbo`. This is what each part of this command command does:
+11. After the image is built, you can create a container from it with the `docker run` command. For example, `docker run -it -d -p 8080:80 hypbo`. This is what each part of this command command does:
 
     - `-d`: This option runs the container in detached mode, which means it runs in the background.
     - `-p 8080:80`: This option maps port 8080 on your machine to port 80 on the Docker container. You can change these numbers to whatever ports you want to use.
+    - `it`: This allows you to interact with the container.
 
 #### Using a Python virtual environment
 
