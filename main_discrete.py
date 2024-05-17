@@ -3,7 +3,13 @@ This script performs the replica of the Photocatalytic Hydrogen Production
 experiment using the HypBO optimization algorithm. It takes command line
 arguments to specify the budget, initial samples count, and other parameters.
 The script runs the HypBO algorithm for the defined hypotheses in the utils
-file. It saves the optimization data in the specified folder path.
+file:
+- perfect_hindsight
+- what_we_kew
+- bizarro_world
+- virtual_chemists_team
+
+It saves the optimization data in the specified folder path.
 """
 
 import argparse
@@ -18,45 +24,38 @@ parser = argparse.ArgumentParser()
 
 # Adding optional argument
 parser.add_argument(
-    "-s",
-    "--seed",
-    help="Seed",
-    nargs='?',
-    type=int,
-    const=0,
-    default=0)
+    "-s", "--seed", help="Seed", nargs="?", type=int, const=0, default=0
+)
 parser.add_argument(
-    "-b",
-    "--budget",
-    help="Budget",
-    nargs='?',
-    type=int,
-    const=10,
-    default=10)
+    "-b", "--budget", help="Budget", nargs="?", type=int, const=10, default=10
+)
 parser.add_argument(
     "-n",
     "--n_init",
     help="Initialization number",
-    nargs='?',
+    nargs="?",
     type=int,
     const=5,
-    default=5)
+    default=5,
+)
 parser.add_argument(
     "-bc",
     "--batch",
     help="Batch size",
-    nargs='?',
+    nargs="?",
     type=int,
     const=1,
-    default=1)
+    default=1,
+)
 parser.add_argument(
     "-np",
     "--n_processes",
     help="Number of processes",
-    nargs='?',
+    nargs="?",
     type=int,
     const=5,
-    default=5)
+    default=5,
+)
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -71,26 +70,30 @@ func = get_function(name="HER")
 
 # Params
 pbounds = {
-    'AcidRed871_0gL': (0, 5, .25),
-    'L-Cysteine-50gL': (0, 5, .25),
-    'MethyleneB_250mgL': (0, 5, .25),
-    'NaCl-3M': (0, 5, .25),
-    'NaOH-1M': (0, 5, .25),
-    'P10-MIX1': (1, 5, 0.2,),
-    'PVP-1wt': (0, 5, .25),
-    'RhodamineB1_0gL': (0, 5, .25),
-    'SDS-1wt': (0, 5, .25),
-    'Sodiumsilicate-1wt': (0, 5, .25)}
+    "AcidRed871_0gL": (0, 5, 0.25),
+    "L-Cysteine-50gL": (0, 5, 0.25),
+    "MethyleneB_250mgL": (0, 5, 0.25),
+    "NaCl-3M": (0, 5, 0.25),
+    "NaOH-1M": (0, 5, 0.25),
+    "P10-MIX1": (
+        1,
+        5,
+        0.2,
+    ),
+    "PVP-1wt": (0, 5, 0.25),
+    "RhodamineB1_0gL": (0, 5, 0.25),
+    "SDS-1wt": (0, 5, 0.25),
+    "Sodiumsilicate-1wt": (0, 5, 0.25),
+}
 constraints = [
-    '5 - L-Cysteine-50gL - NaCl-3M - NaOH-1M - PVP-1wt - SDS-1wt -'
-    ' Sodiumsilicate-1wt - AcidRed871_0gL - '
-    'RhodamineB1_0gL - MethyleneB_250mgL']
+    "5 - L-Cysteine-50gL - NaCl-3M - NaOH-1M - PVP-1wt - SDS-1wt -"
+    " Sodiumsilicate-1wt - AcidRed871_0gL - "
+    "RhodamineB1_0gL - MethyleneB_250mgL"
+]
 feature_names = list(pbounds.keys())
 
 
-def run_scenario(
-        scenario=[],
-        seed: int = 0):
+def run_scenario(scenario=[], seed: int = 0):
     """
     Run a single scenario of the Photocatalytic Hydrogen Production experiment.
 
@@ -100,7 +103,7 @@ def run_scenario(
 
     """
     # Get the name of the scenario
-    scenario_name = get_scenario_name(hypotheses=scenario)
+    scenario_name = get_scenario_name(scenario=scenario)
     print(f"--------------- Scenario: {scenario_name}")
 
     # Set the model kwargs
@@ -118,21 +121,17 @@ def run_scenario(
         model_kwargs=model_kwargs,
         hypotheses=scenario,
         seed=seed,
-        n_processes=n_processes
+        n_processes=n_processes,
     )
 
     # Perform the search
-    hbo.search(
-        budget=budget,
-        n_init=n_init,
-        batch=batch
-    )
+    hbo.search(budget=budget, n_init=n_init, batch=batch)
 
     # Save the data
     hbo.save_data(
         func_name=func.name,
         scenario_name=scenario_name,
-        seed=seed
+        seed=seed,
     )
 
 
@@ -148,11 +147,8 @@ def multiprocess_her_experiment():
 
     # Run the scenarios in parallel
     processes = []
-    for scenarios in scenarios_list[:1]:
-        process = Process(
-            target=run_scenario,
-            args=(scenarios, seed)
-        )
+    for scenarios in scenarios_list:
+        process = Process(target=run_scenario, args=(scenarios, seed))
         process.start()
         processes.append(process)
 

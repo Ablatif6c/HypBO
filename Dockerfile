@@ -8,8 +8,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Install pip requirements
-COPY requirements.txt .
-COPY requirements_dev.txt .
+COPY ./requirements/requirements.txt .
+COPY ./requirements/requirements_dev.txt .
 RUN pip install --upgrade pip
 RUN python -m pip install -r requirements.txt
 RUN python -m pip install -r requirements_dev.txt

@@ -14,10 +14,7 @@ import pandas as pd
 from utils import multiprocess_all_function_data
 
 
-def ablation_studies_bsf(
-    test_functions: List[Tuple[str, int]],
-    ablation_dir: str
-):
+def ablation_studies_bsf(test_functions: List[Tuple[str, int]], ablation_dir: str):
     """
     For each ablation test case directory, generate the best so far data
     on the given test functions.
@@ -34,8 +31,11 @@ def ablation_studies_bsf(
     """
     print("Performing ablation studies...")
     # Get the list of ablation test cases directories.
-    ablation_dirs = [dir for dir in os.listdir(
-        ablation_dir) if os.path.isdir(os.path.join(ablation_dir, dir))]
+    ablation_dirs = [
+        dir
+        for dir in os.listdir(ablation_dir)
+        if os.path.isdir(os.path.join(ablation_dir, dir))
+    ]
 
     # For each ablation test case directory, generate the best so far data.
     for dir_name in ablation_dirs:
@@ -58,8 +58,11 @@ def save_results_per_function_per_hypothesis(ablation_dir: str):
     std_data = {}
 
     # For each ablation study
-    ablation_dirs = [dir for dir in os.listdir(
-        ablation_dir) if os.path.isdir(os.path.join(ablation_dir, dir))]
+    ablation_dirs = [
+        dir
+        for dir in os.listdir(ablation_dir)
+        if os.path.isdir(os.path.join(ablation_dir, dir))
+    ]
     print(f"Scraping {len(ablation_dirs)} ablation studies:")
     for ablation_dir_name in ablation_dirs:
         print(f"\t{ablation_dir_name}")
@@ -68,13 +71,12 @@ def save_results_per_function_per_hypothesis(ablation_dir: str):
         # For each test function
         for func_name in os.listdir(dir_path):
             # Get avg file and the scenario data.
-            avg_file = os.path.join(
-                dir_path, func_name, f"{func_name}_average.csv")
+            avg_file = os.path.join(dir_path, func_name, f"{func_name}_average.csv")
             if os.path.exists(avg_file):
                 avg_df = pd.read_csv(avg_file)
 
                 # For each scenario
-                for column in avg_df.columns[1:]:   # Remove iteration column
+                for column in avg_df.columns[1:]:  # Remove iteration column
                     if column not in avg_data.keys():
                         avg_data[column] = {}
                     if func_name not in avg_data[column].keys():
@@ -83,12 +85,10 @@ def save_results_per_function_per_hypothesis(ablation_dir: str):
                     # Get the values
                     values = avg_df[column].values
                     if len(values) > 0:
-                        avg_data[column][func_name].append(
-                            (ablation_dir_name, values))
+                        avg_data[column][func_name].append((ablation_dir_name, values))
 
             # std
-            std_file = os.path.join(
-                dir_path, func_name, f"{func_name}_std.csv")
+            std_file = os.path.join(dir_path, func_name, f"{func_name}_std.csv")
             if os.path.exists(std_file):
                 std_df = pd.read_csv(std_file)
 
@@ -101,8 +101,7 @@ def save_results_per_function_per_hypothesis(ablation_dir: str):
                     # Get the values
                     values = std_df[column].values
                     if len(values) > 0:
-                        std_data[column][func_name].append(
-                            (ablation_dir_name, values))
+                        std_data[column][func_name].append((ablation_dir_name, values))
 
     # Create summary files
     print("Saving summary files...")
@@ -111,7 +110,8 @@ def save_results_per_function_per_hypothesis(ablation_dir: str):
         for func_name in avg_data[scenario_name].keys():
             # Average
             avg_file_path = os.path.join(
-                ablation_dir, f"AS_{scenario_name}_{func_name}_avg.csv")
+                ablation_dir, f"AS_{scenario_name}_{func_name}_avg.csv"
+            )
             columns, data = zip(*avg_data[scenario_name][func_name])
             data = np.array(data).T
             df = pd.DataFrame(columns=columns, data=data)
@@ -119,7 +119,8 @@ def save_results_per_function_per_hypothesis(ablation_dir: str):
 
             # Std
             std_file_path = os.path.join(
-                ablation_dir, f"AS_{scenario_name}_{func_name}_std.csv")
+                ablation_dir, f"AS_{scenario_name}_{func_name}_std.csv"
+            )
             columns, data = zip(*std_data[scenario_name][func_name])
             data = np.array(data).T
             df = pd.DataFrame(columns=columns, data=data)
@@ -147,14 +148,18 @@ def save_all_results_in_one_file(ablation_dir: str):
     for avg_file in csv_av_files:
         df = pd.read_csv(avg_file)  # Read avg file.
         # Get function name.
-        function_name = os.path.basename(avg_file).split(
-            '_')[-3] + "_" + os.path.basename(avg_file).split('_')[-2]
-        df['Function'] = function_name  # Add function name to dataframe.
+        function_name = (
+            os.path.basename(avg_file).split("_")[-3]
+            + "_"
+            + os.path.basename(avg_file).split("_")[-2]
+        )
+        df["Function"] = function_name  # Add function name to dataframe.
         # Get hypotheses names.
         hypotheses_names = re.search(
-            r'AS_(.*?)_'+function_name, os.path.basename(avg_file)).group(1)
+            r"AS_(.*?)_" + function_name, os.path.basename(avg_file)
+        ).group(1)
         # Add hypotheses names to dataframe.
-        df['Hypotheses'] = hypotheses_names
+        df["Hypotheses"] = hypotheses_names
         # Add dataframe to all_results.
         all_results = pd.concat([all_results, df], ignore_index=True)
 
@@ -174,22 +179,24 @@ def save_all_results_in_one_file(ablation_dir: str):
     #         "Weak_Good", "Good_Weak")
 
     if "u_l" in ablation_dir:
-        all_results = all_results.reindex(columns=[
-            all_results.columns[0],
-            'u10_l1',
-            'u10_l2',
-            'u10_l3',
-            'u10_l4',
-            'u10_l5',
-            'u10_l6',
-            'u10_l7',
-            'u10_l8',
-            'u10_l9',
-            'u10_l10',
-            'u1_l10',
-            'u5_l2',
-            'Function',
-            'Hypotheses']
+        all_results = all_results.reindex(
+            columns=[
+                all_results.columns[0],
+                "u10_l1",
+                "u10_l2",
+                "u10_l3",
+                "u10_l4",
+                "u10_l5",
+                "u10_l6",
+                "u10_l7",
+                "u10_l8",
+                "u10_l9",
+                "u10_l10",
+                "u1_l10",
+                "u5_l2",
+                "Function",
+                "Hypotheses",
+            ]
         )
     all_results.to_csv(all_results_file, index=False)  # Save all_results.
 
@@ -235,8 +242,9 @@ if __name__ == "__main__":
     do_ablation_study_u_l = True
     if do_ablation_study_u_l:
         ablation_dir = os.path.join("data", "ablation_studies", "u_l")
-        ablation_studies_bsf(test_functions=test_synthetic_functions,
-                             ablation_dir=ablation_dir)
+        ablation_studies_bsf(
+            test_functions=test_synthetic_functions, ablation_dir=ablation_dir
+        )
         save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)
         save_all_results_in_one_file(ablation_dir=ablation_dir)
 
@@ -248,8 +256,9 @@ if __name__ == "__main__":
             ("Ackley", 5),
         ]
         ablation_dir = os.path.join("data", "ablation_studies", "gamma")
-        ablation_studies_bsf(test_functions=gamma_test_synthetic_functions,
-                             ablation_dir=ablation_dir)
+        ablation_studies_bsf(
+            test_functions=gamma_test_synthetic_functions, ablation_dir=ablation_dir
+        )
         save_results_per_function_per_hypothesis(ablation_dir=ablation_dir)
         save_all_results_in_one_file(ablation_dir=ablation_dir)
 

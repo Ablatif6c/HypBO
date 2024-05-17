@@ -2,7 +2,14 @@
 This script performs synthetic experiments using the HypBO
 optimization algorithm. It takes command line arguments to specify the
 function name, dimension, and other parameters. The script runs the HypBO
-algorithm for the given function and dimension, and scenarios.
+algorithm for the given function and dimension, for the following scenarios:
+- poor_hypothesis
+- weak_hypothesis
+- good_hypothesis
+- good_hypothesis + poor_hypothesis
+- good_hypothesis + weak_hypothesis
+- weak_hypothesis + poor_hypothesis
+
 It saves the optimization data in the specified folder path.
 """
 
@@ -24,90 +31,71 @@ parser.add_argument(
     "-f",
     "--func_name",
     help="Function name",
-    nargs='?',
+    nargs="?",
     type=str,
     const="Branin",
-    default="Branin")
+    default="Branin",
+)
 parser.add_argument(
-    "-d",
-    "--dim",
-    help="Starting dimension",
-    nargs='?',
-    type=int,
-    const=2,
-    default=2)
+    "-d", "--dim", help="Starting dimension", nargs="?", type=int, const=2, default=2
+)
 parser.add_argument(
-    "-ss",
-    "--seed_start",
-    help="Starting seed",
-    nargs='?',
-    type=int,
-    const=0,
-    default=0)
+    "-ss", "--seed_start", help="Starting seed", nargs="?", type=int, const=0, default=0
+)
 parser.add_argument(
-    "-sc",
-    "--seed_count",
-    help="Seed count",
-    nargs='?',
-    type=int,
-    const=2,
-    default=2)
+    "-sc", "--seed_count", help="Seed count", nargs="?", type=int, const=2, default=2
+)
 parser.add_argument(
     "-n",
     "--n_init",
     help="Initialization number",
-    nargs='?',
+    nargs="?",
     type=int,
     const=5,
-    default=5)
+    default=5,
+)
 parser.add_argument(
-    "-b",
-    "--budget",
-    help="Budget",
-    nargs='?',
-    type=int,
-    const=10,
-    default=10)
+    "-b", "--budget", help="Budget", nargs="?", type=int, const=10, default=10
+)
 parser.add_argument(
-    "-bc",
-    "--batch",
-    help="Batch size",
-    nargs='?',
-    type=int,
-    const=1,
-    default=1)
+    "-bc", "--batch", help="Batch size", nargs="?", type=int, const=1, default=1
+)
 parser.add_argument(
     "-np",
     "--n_processes",
     help="Number of processes",
-    nargs='?',
+    nargs="?",
     type=int,
     const=10,
-    default=10)
+    default=10,
+)
 parser.add_argument(
     "-u",
     "--upper_limit",
     help="Upper failure limit",
-    nargs='?',
+    nargs="?",
     type=int,
     const=5,
-    default=5)
+    default=5,
+)
 parser.add_argument(
     "-l",
     "--lower_limit",
     help="Lower failure limit",
-    nargs='?',
+    nargs="?",
     type=int,
     const=2,
-    default=2)
+    default=2,
+)
 parser.add_argument(
     "-a",
     "--ablation_studies",
     help="Is this an ablation study",
-    nargs='?',
+    nargs="?",
     type=bool,
     const=False,
-    default=False)
+    default=False,
+)
 
 # Read arguments from command line
 args = parser.parse_args()
@@ -124,10 +112,7 @@ upper_limit = args.upper_limit
 lower_limit = args.lower_limit
 
 
-def run_hypbo(
-        func,
-        scenarios: List[List[Hypothesis]],
-        seed: int = 0):
+def run_hypbo(func, scenarios: List[List[Hypothesis]], seed: int = 0):
     """
     Run the HypBO optimization algorithm.
 
@@ -144,7 +129,8 @@ def run_hypbo(
     # Get the scenario name
     scenario_name = get_scenario_name(scenario=scenarios)
     print(
-        f"--------------- Scenario: {scenario_name}\t Seed: {seed}/{seed_start + seed_count-1}")
+        f"--------------- Scenario: {scenario_name}\t Seed: {seed}/{seed_start + seed_count-1}"
+    )
 
     # Params
     pbounds = func.bound
@@ -166,7 +152,7 @@ def run_hypbo(
         n_processes=n_processes,
         discretization=False,
         global_failure_limit=upper_limit,
-        local_failure_limit=lower_limit
+        local_failure_limit=lower_limit,
     )
     hypbo.search(
         budget=budget,
@@ -174,27 +160,19 @@ def run_hypbo(
         batch=batch,
     )
 
-    # Get the folder path to save the data.
-    folder_path = os.path.join(
-        "data",
-        "HypBO",
-    )
     if ablation_studies:
         folder_path = os.path.join(
-            folder_path,
-            "ablation_studies",
-            f"u{upper_limit}_l{lower_limit}")
+            folder_path, "ablation_studies", f"u{upper_limit}_l{lower_limit}"
+        )
 
     # Save the data.
     hypbo.save_data(
         func_name=f"{func.name}_d{func.dim}",
         scenario_name=scenario_name,
-        folder_path=folder_path)
+    )
 
 
-def multiprocess_synthetic_experiment(
-        func_name: str,
-        dim: int = 0):
+def multiprocess_synthetic_experiment(func_name: str, dim: int = 0):
     """
     Run a multiprocess synthetic experiment.
 
@@ -206,16 +184,10 @@ def multiprocess_synthetic_experiment(
     print(f"Processing {func_name}...")
 
     # Get the function based on the given name and dimension
-    func = get_function(
-        dim=dim,
-        name=func_name
-    )
+    func = get_function(dim=dim, name=func_name)
 
-    # Get the last two scenarios for the given function name and dimension
-    hypotheses = get_scenarios(
-        func_name=func_name,
-        dim=dim
-    )
+    # Get the scenarios for the given function name and dimension
+    hypotheses = get_scenarios(func_name=func_name, dim=dim)
 
     # Iterate over the range of seeds
     for seed in range(seed_start, seed_start + seed_count):

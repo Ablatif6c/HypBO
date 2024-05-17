@@ -56,8 +56,8 @@ After downloading the HypBO repository, the installation steps depends on whethe
 3. Navigate to the HypBO directory where to create the virtual environment. You can do this with the `cd` command by typing `cd HypBO`.
 4. Once you're in the directory, you can create the virtual environment with the `python -m venv` command by running `python3.8 -m venv .venv`.
 5. After the virtual environment is created, you can activate it. The command to do this depends on your operating system:
-   - On Windows, type `.hypbo\Scripts\activate`.
-   - On Unix or MacOS, type `source .hypbo/bin/activate`.
+   - On Windows, type `.venv\Scripts\activate`.
+   - On Unix or MacOS, type `source .venv/bin/activate`.
 6. Once the `.venv` virtual environment is activated, your terminal or command prompt should show the name of the virtual environment.
 7. You can now install the required packages into the `.venv` virtual environment using `pip install -r requirements.txt`.
 
