@@ -106,14 +106,21 @@ Details on how to use the baseline methods can be found in their respective sub-
 Please cite us as:
 
 ```
-@inproceedings{cisse2024hypbo,
-  title = {HypBO: Accelerating Black-Box Scientific Experiments using Experts' Hypotheses},
-  author = {Cisse, Abdoulatif and Evangelopoulos, Xenophon and Carruthers, Sam and Gusev, Vadimir V and Cooper, Andrew I},
-  booktitle = {Proceedings of the Thirty-Third International Joint Conference on Artificial Intelligence, {IJCAI-24}},
+@inproceedings{ijcai2024p0429,
+  title     = {HypBO: Accelerating Black-Box Scientific Experiments Using Experts’ Hypotheses},
+  author    = {Cissé, Abdoulatif and Evangelopoulos, Xenophon and Carruthers, Sam and Gusev, Vladimir V. and Cooper, Andrew I.},
+  booktitle = {Proceedings of the Thirty-Third International Joint Conference on
+               Artificial Intelligence, {IJCAI-24}},
   publisher = {International Joint Conferences on Artificial Intelligence Organization},
+  editor    = {Kate Larson},
+  pages     = {3881--3889},
   year      = {2024},
-  note      = {Main Track}
+  month     = {8},
+  note      = {Main Track},
+  doi       = {10.24963/ijcai.2024/429},
+  url       = {https://doi.org/10.24963/ijcai.2024/429},
 }
+
 ```
 
 An extended version of the paper which includes the Supplementary Material can be found at [arXiv:2308.11787](https://arxiv.org/abs/2308.11787).
