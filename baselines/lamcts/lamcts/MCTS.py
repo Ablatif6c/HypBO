@@ -24,7 +24,7 @@ from typing import List, Literal, Optional, Tuple
 
 import numpy as np
 
-from hypothesis import Hypothesis
+from hypbo.hypothesis import Hypothesis
 
 from .Node import Node
 from .utils import sample_region
@@ -123,9 +123,10 @@ class MCTS:
         self.visualization = False
 
     def initialize(
-            self,
-            n_init: int = 5,
-            batch: int = 1,):
+        self,
+        n_init: int = 5,
+        batch: int = 1,
+    ):
         """Generates initialisation samples in the search space using latin\
         hyper space.
         Args:
@@ -142,10 +143,10 @@ class MCTS:
         return init_samples
 
     def register(
-            self,
-            x,
-            y,
-            ):
+        self,
+        x,
+        y,
+    ):
         self.samples.append((x, y))
 
     def suggest(
@@ -170,7 +171,7 @@ class MCTS:
                 lb=lb,
                 ub=ub,
                 seed=seed,
-                multiprocessing=multiprocessing
+                multiprocessing=multiprocessing,
             )
 
         elif self.solver_type == "turbo":

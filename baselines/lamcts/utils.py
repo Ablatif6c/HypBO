@@ -3,7 +3,7 @@ import inspect
 import numpy as np
 
 import resources.functions.standard_test_functions as fcts
-from hypothesis import Hypothesis
+from hypbo.hypothesis import Hypothesis
 from resources.functions.her_function import HER
 from resources.functions.test_problem import TestProblem
 
@@ -15,9 +15,13 @@ def get_poor_hypothesis(
     sol: np.ndarray,
 ):
     print("Getting a poor hypothesis...")
-    assert lb.shape == ub.shape, "The lower and upper\
+    assert (
+        lb.shape == ub.shape
+    ), "The lower and upper\
           bounds must be of same shape."
-    assert lb.shape == size.shape, "The size and the bounds \
+    assert (
+        lb.shape == size.shape
+    ), "The size and the bounds \
         must be of the same shape."
     assert (
         lb.shape == sol.shape
@@ -89,9 +93,13 @@ def get_weak_hypothesis(
 ):
     print("Getting a weak hypothesis...")
 
-    assert lb.shape == ub.shape, "The lower and upper bounds must \
+    assert (
+        lb.shape == ub.shape
+    ), "The lower and upper bounds must \
         be of same shape."
-    assert lb.shape == size.shape, "The size and the bounds must \
+    assert (
+        lb.shape == size.shape
+    ), "The size and the bounds must \
         be of the same shape."
     assert (
         lb.shape == sol.shape
@@ -162,9 +170,13 @@ def get_good_hypothesis(
 ):
     print("Getting a good hypothesis...")
 
-    assert lb.shape == ub.shape, "The lower and upper bounds must be \
+    assert (
+        lb.shape == ub.shape
+    ), "The lower and upper bounds must be \
         of same shape."
-    assert lb.shape == size.shape, "The size and the bounds must be \
+    assert (
+        lb.shape == size.shape
+    ), "The size and the bounds must be \
         of the same shape."
     assert (
         lb.shape == sol.shape
@@ -258,16 +270,16 @@ def get_function(
 
 def _get_HER_hypotheses():
     feature_names = [
-        'AcidRed871_0gL',
-        'L-Cysteine-50gL',
-        'MethyleneB_250mgL',
-        'NaCl-3M',
-        'NaOH-1M',
-        'P10-MIX1',
-        'PVP-1wt',
-        'RhodamineB1_0gL',
-        'SDS-1wt',
-        'Sodiumsilicate-1wt',
+        "AcidRed871_0gL",
+        "L-Cysteine-50gL",
+        "MethyleneB_250mgL",
+        "NaCl-3M",
+        "NaOH-1M",
+        "P10-MIX1",
+        "PVP-1wt",
+        "RhodamineB1_0gL",
+        "SDS-1wt",
+        "Sodiumsilicate-1wt",
     ]
 
     dim = len(feature_names)
@@ -279,11 +291,66 @@ def _get_HER_hypotheses():
     name = "Perfect Hindsight"
     coeff_equalities = np.array(
         [
-            [0, 0,  1,  0, 0, 0,   0,  0,  0,  0, ],    # MB = 0
-            [1, 0,  0,  0, 0, 0,   0,  0,  0,  0, ],    # AR87 = 0
-            [0, 0,  0,  0, 0, 0,   0,  1,  0,  0, ],    # RB = 0
-            [0, 0,  0,  0, 0, 0,   1,  0,  0,  0, ],    # SDS = 0
-            [0, 0,  0,  0, 0, 0,   0,  0,  1,  0, ],    # PVP = 0
+            [
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # MB = 0
+            [
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # AR87 = 0
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+            ],  # RB = 0
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+            ],  # SDS = 0
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+            ],  # PVP = 0
         ]
     )
     const_equalities = np.array(
@@ -296,49 +363,173 @@ def _get_HER_hypotheses():
         ]
     )
 
-    coeff_inequalities = np.array([
-        [0, 0,  0,  0, 0, -1,   0,  0,  0,  0, ],   # P10 >= 3.5 mg
+    coeff_inequalities = np.array(
+        [
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+            ],  # P10 >= 3.5 mg
+            [
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # CYS >= 1 mL
+            [
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # CYS <= 3 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # NaOH >= 0.5 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # NaOH <= 2 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                -1,
+            ],  # NaDS >= 0 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+            ],  # NaDS <= 1.5 mL
+            [
+                0,
+                -1,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+            ],  # Cys + NaOH + NaDS >= 2 mL
+            # Cys + NaOH + NaDS <= 4.5 mL
+            [
+                0,
+                1,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+            ],
+            [
+                0,
+                0,
+                0,
+                -1,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+            ],  # NaCl + NaOH + NaDS >= 1 mL
+            # NaCl + NaOH + NaDS <= 2.75mL
+            [
+                0,
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+            ],
+            [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # CYS <= 2.5 mL
+        ]
+    )
 
-        [0, -1,  0, 0, 0,  0,   0,  0,  0,  0, ],   # CYS >= 1 mL
-        [0, 1,  0, 0, 0,  0,   0,  0,  0,  0, ],    # CYS <= 3 mL
-
-        [0, 0,  0,  0, -1,  0,   0,  0,  0,  0, ],   # NaOH >= 0.5 mL
-        [0, 0,  0,  0, 1,  0,   0,  0,  0,  0, ],    # NaOH <= 2 mL
-
-        [0, 0,  0,  0, 0,  0,   0,  0,  0,  -1, ],   # NaDS >= 0 mL
-        [0, 0,  0,  0, 0,  0,   0,  0,  0,  1, ],    # NaDS <= 1.5 mL
-
-        [0, -1,  0,  0, -1,  0,   0,  0,  0,  -1, ],  # Cys + NaOH + NaDS >= 2 mL
-        # Cys + NaOH + NaDS <= 4.5 mL
-        [0, 1,  0,  0, 1,  0,   0,  0,  0,  1, ],
-
-        [0, 0,  0,  -1, -1,  0,   0,  0,  0,  -1, ],  # NaCl + NaOH + NaDS >= 1 mL
-        # NaCl + NaOH + NaDS <= 2.75mL
-        [0, 0,  0,  1, 1,  0,   0,  0,  0,  1, ],
-
-        [0, 0,  0, 1, 0,  0,   0,  0,  0,  0, ],    # CYS <= 2.5 mL
-    ])
-
-    const_inequalities = np.array([
-        -3.5,   # P10 >= 3.5 mg
-
-        -1,     # CYS >= 1 mL
-        3.5,    # CYS <= 3 mL
-
-        -0.5,   # NaOH >= 0.5 mL
-        2,      # NaOH <= 2 mL
-
-        0,      # NaDS >= 0 mL
-        1.5,    # NaDS <= 1.5 mL
-
-        -2,     # Cys + NaOH + NaDS >= 2 mL
-        4.5,    # Cys + NaOH + NaDS <= 4.5 mL
-
-        -1,     # NaCl + NaOH + NaDS >= 1 mL
-        2.75,   # NaCl + NaOH + NaDS <= 2.75 mL
-
-        2.5,    # NaCL <= 2.5 mL
-    ])
+    const_inequalities = np.array(
+        [
+            -3.5,  # P10 >= 3.5 mg
+            -1,  # CYS >= 1 mL
+            3.5,  # CYS <= 3 mL
+            -0.5,  # NaOH >= 0.5 mL
+            2,  # NaOH <= 2 mL
+            0,  # NaDS >= 0 mL
+            1.5,  # NaDS <= 1.5 mL
+            -2,  # Cys + NaOH + NaDS >= 2 mL
+            4.5,  # Cys + NaOH + NaDS <= 4.5 mL
+            -1,  # NaCl + NaOH + NaDS >= 1 mL
+            2.75,  # NaCl + NaOH + NaDS <= 2.75 mL
+            2.5,  # NaCL <= 2.5 mL
+        ]
+    )
 
     perfect_hindsight = Hypothesis(
         name=name,
@@ -355,7 +546,18 @@ def _get_HER_hypotheses():
     name = "What they knew"
     coeff_equalities = np.array(
         [
-            [0, 0,  0,  0, 0, 1,   0,  0,  0,  0, ],    # P10 = 5
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+            ],  # P10 = 5
         ]
     )
     const_equalities = np.array(
@@ -364,49 +566,145 @@ def _get_HER_hypotheses():
         ]
     )
 
-    coeff_inequalities = np.array([
-        [0, -1,  0, 0, 0,  0,   0,  0,  0,  0, ],   # CYS >= 1 mL
-        [0, 1,  0, 0, 0,  0,   0,  0,  0,  0, ],    # CYS <= 4 mL
+    coeff_inequalities = np.array(
+        [
+            [
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # CYS >= 1 mL
+            [
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # CYS <= 4 mL
+            [
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # MB <= 0.5 mL
+            [
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # AR87 <= 1 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+            ],  # RB <= 0.5 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # NaOH <= 3 mL
+            [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # NaCl <= 3 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+            ],  # SDS <= 1 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+            ],  # PVP <= 2 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+            ],  # NaDS <= 4 mL
+        ]
+    )
 
-        [0, 0,  1, 0, 0,  0,   0,  0,  0,  0, ],    # MB <= 0.5 mL
-
-        [1, 0,  0, 0, 0,  0,   0,  0,  0,  0, ],    # AR87 <= 1 mL
-
-        [0, 0,  0, 0, 0,  0,   0,  1,  0,  0, ],    # RB <= 0.5 mL
-
-        [0, 0,  0, 0, 1,  0,   0,  0,  0,  0, ],    # NaOH <= 3 mL
-
-        [0, 0,  0, 1, 0,  0,   0,  0,  0,  0, ],    # NaCl <= 3 mL
-
-        [0, 0,  0, 0, 0,  0,   0,  0,  1,  0, ],    # SDS <= 1 mL
-
-        [0, 0,  0, 0, 0,  0,   1,  0,  0,  0, ],    # PVP <= 2 mL
-
-        [0, 0,  0, 0, 0,  0,   0,  0,  0,  1, ],    # NaDS <= 4 mL
-    ])
-
-    const_inequalities = np.array([
-        -1,     # CYS >= 1 mL
-
-        4,      # CYS <= 4 mL
-
-        0.5,    # MB <= 0.5 mL
-
-        1,      # AR87 <= 1 mL
-
-        0.5,    # RB <= 0.5 mL
-
-        3,      # NaOH <= 3 mL
-
-        3,      # NaCl <= 3 mL
-
-        1,      # SDS <= 1 mL
-
-        2,      # PVP <= 2 mL
-
-        4,      # NaDS <= 4 mL
-
-    ])
+    const_inequalities = np.array(
+        [
+            -1,  # CYS >= 1 mL
+            4,  # CYS <= 4 mL
+            0.5,  # MB <= 0.5 mL
+            1,  # AR87 <= 1 mL
+            0.5,  # RB <= 0.5 mL
+            3,  # NaOH <= 3 mL
+            3,  # NaCl <= 3 mL
+            1,  # SDS <= 1 mL
+            2,  # PVP <= 2 mL
+            4,  # NaDS <= 4 mL
+        ]
+    )
 
     what_we_kew = Hypothesis(
         name=name,
@@ -423,19 +721,48 @@ def _get_HER_hypotheses():
     name = "Dye Sceptic"
     coeff_equalities = np.array(
         [
-            [0, 0,  1,  0, 0, 0,   0,  0,  0,  0, ],    # MB = 0
-
-            [1, 0,  0,  0, 0, 0,   0,  0,  0,  0, ],    # AR87 = 0
-
-            [0, 0,  0,  0, 0, 0,   0,  1,  0,  0, ],    # RB = 0
+            [
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # MB = 0
+            [
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # AR87 = 0
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+            ],  # RB = 0
         ]
     )
     const_equalities = np.array(
         [
             0,  # MB = 0
-
             0,  # AR87 = 0
-
             0,  # RB = 0
         ]
     )
@@ -459,13 +786,28 @@ def _get_HER_hypotheses():
     coeff_equalities = None
     const_equalities = None
 
-    coeff_inequalities = np.array([
-        [-1, 0,  -1, 0, 0,  0,   0,  -1,  0,  0, ],   # MB + AR87 + RB >= 3 mL
-    ])
+    coeff_inequalities = np.array(
+        [
+            [
+                -1,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+            ],  # MB + AR87 + RB >= 3 mL
+        ]
+    )
 
-    const_inequalities = np.array([
-        -3,     # MB + AR87 + RB >= 3 mL
-    ])
+    const_inequalities = np.array(
+        [
+            -3,  # MB + AR87 + RB >= 3 mL
+        ]
+    )
 
     dye_advocate = Hypothesis(
         name=name,
@@ -483,21 +825,54 @@ def _get_HER_hypotheses():
     coeff_equalities = None
     const_equalities = None
 
-    coeff_inequalities = np.array([
-        [-1, 0,  0, 0, 0,  0,   0,  0,  0,  0, ],   # AR87 >= 3 mL
+    coeff_inequalities = np.array(
+        [
+            [
+                -1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # AR87 >= 3 mL
+            [
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # MB <= 0.5 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+            ],  # RB <= 0.5 mL
+        ]
+    )
 
-        [0, 0,  1, 0, 0,  0,   0,  0,  0,  0, ],   # MB <= 0.5 mL
-
-        [0, 0,  0, 0, 0,  0,   0,  1,  0,  0, ],   # RB <= 0.5 mL
-    ])
-
-    const_inequalities = np.array([
-        -3,     # AR87 >= 3 mL
-
-        0.5,    # MB <= 0.5 mL
-
-        0.5,    # RB <= 0.5 mL
-    ])
+    const_inequalities = np.array(
+        [
+            -3,  # AR87 >= 3 mL
+            0.5,  # MB <= 0.5 mL
+            0.5,  # RB <= 0.5 mL
+        ]
+    )
 
     ar87_advocate = Hypothesis(
         name=name,
@@ -514,16 +889,35 @@ def _get_HER_hypotheses():
     name = "Surfactant Sceptic"
     coeff_equalities = np.array(
         [
-            [0, 0,  0,  0, 0, 0,   0,  0,  1,  0, ],    # SDS = 0
-
-            [0, 0,  0,  0, 0, 0,   1,  0,  0,  0, ],    # PVP = 0
-
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+            ],  # SDS = 0
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+            ],  # PVP = 0
         ]
     )
     const_equalities = np.array(
         [
             0,  # SDS = 0
-
             0,  # PVP = 0
         ]
     )
@@ -547,13 +941,28 @@ def _get_HER_hypotheses():
     coeff_equalities = None
     const_equalities = None
 
-    coeff_inequalities = np.array([
-        [0, -1,  0, 0, 0,  0,   0,  0,  0,  0, ],   # CYS >= 4 mL
-    ])
+    coeff_inequalities = np.array(
+        [
+            [
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # CYS >= 4 mL
+        ]
+    )
 
-    const_inequalities = np.array([
-        -4,     # CYS >= 4 mL
-    ])
+    const_inequalities = np.array(
+        [
+            -4,  # CYS >= 4 mL
+        ]
+    )
 
     scavenger_obsessive = Hypothesis(
         name=name,
@@ -571,13 +980,28 @@ def _get_HER_hypotheses():
     coeff_equalities = None
     const_equalities = None
 
-    coeff_inequalities = np.array([
-        [0, 0,  0, 0, -1,  0,   0,  0,  0,  -1, ],   # NaOH + NaDS > 3.5 mL
-    ])
+    coeff_inequalities = np.array(
+        [
+            [
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+            ],  # NaOH + NaDS > 3.5 mL
+        ]
+    )
 
-    const_inequalities = np.array([
-        -3.5,     # NaOH + NaDS > 3.5 mL
-    ])
+    const_inequalities = np.array(
+        [
+            -3.5,  # NaOH + NaDS > 3.5 mL
+        ]
+    )
 
     ph_obsessive = Hypothesis(
         name=name,
@@ -595,13 +1019,28 @@ def _get_HER_hypotheses():
     coeff_equalities = None
     const_equalities = None
 
-    coeff_inequalities = np.array([
-        [0, 0,  0, 0, 0,  0,   0,  0,  0,  -1, ],   # NaDS > 3.5 mL
-    ])
+    coeff_inequalities = np.array(
+        [
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                -1,
+            ],  # NaDS > 3.5 mL
+        ]
+    )
 
-    const_inequalities = np.array([
-        -3.5,     # NaDS > 3.5 mL
-    ])
+    const_inequalities = np.array(
+        [
+            -3.5,  # NaDS > 3.5 mL
+        ]
+    )
 
     h_bonding_obsessive = Hypothesis(
         name=name,
@@ -619,14 +1058,29 @@ def _get_HER_hypotheses():
     coeff_equalities = None
     const_equalities = None
 
-    coeff_inequalities = np.array([
-        # NaOH + NaDS + NaCl > 3.5 mL
-        [0, 0,  0, -1, -1,  0,   0,  0,  0,  -1, ],
-    ])
+    coeff_inequalities = np.array(
+        [
+            # NaOH + NaDS + NaCl > 3.5 mL
+            [
+                0,
+                0,
+                0,
+                -1,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+            ],
+        ]
+    )
 
-    const_inequalities = np.array([
-        -3.5,     # NaOH + NaDS + NaCl > 3.5 mL
-    ])
+    const_inequalities = np.array(
+        [
+            -3.5,  # NaOH + NaDS + NaCl > 3.5 mL
+        ]
+    )
 
     halophile = Hypothesis(
         name=name,
@@ -641,12 +1095,27 @@ def _get_HER_hypotheses():
 
     # ---------------------------------------- Scenario 11: Halophobe
     name = "Halophobe"
-    coeff_equalities = np.array([
-        [0, 0,  0, 1, 0,  0,   0,  0,  0,  0, ],   # NaCl = 0 mL
-    ])
-    const_equalities = np.array([
-        0,     # NaCl = 0 mL
-    ])
+    coeff_equalities = np.array(
+        [
+            [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # NaCl = 0 mL
+        ]
+    )
+    const_equalities = np.array(
+        [
+            0,  # NaCl = 0 mL
+        ]
+    )
 
     coeff_inequalities = None
     const_inequalities = None
@@ -666,54 +1135,152 @@ def _get_HER_hypotheses():
     name = "Bizarro World"
     coeff_equalities = np.array(
         [
-            [0, 0,  0,  0, 0, 1,   0,  0,  0,  0, ],    # P10 = 1
-
-            [0, 1,  0,  0, 0, 0,   0,  0,  0,  0, ],    # CYS = 0
-
-            [0, 0,  0,  0, 1, 0,   0,  0,  0,  0, ],    # NaOH = 0
-
-            [0, 0,  0,  0, 0, 0,   0,  0,  0,  1, ],    # NaDS = 0
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+            ],  # P10 = 1
+            [
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # CYS = 0
+            [
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # NaOH = 0
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+            ],  # NaDS = 0
         ]
     )
     const_equalities = np.array(
         [
             1,  # P10 = 1
-
             0,  # CYS = 0
-
             0,  # NaOH = 0
-
             0,  # NaDS = 0
         ]
     )
 
-    coeff_inequalities = np.array([
-        [0, 0,  -1,  0, 0, 0,   0,  0,  0,  0, ],   # MB >= 0.5 mg
+    coeff_inequalities = np.array(
+        [
+            [
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # MB >= 0.5 mg
+            [
+                -1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # AR87 >= 0.5 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+            ],  # RB <= 0.5 mL
+            [
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],  # NaCL >= 0.5 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+            ],  # SDS >= 0.5 mL
+            [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+            ],  # PVP >= 0.5 mL
+        ]
+    )
 
-        [-1, 0,  0, 0, 0,  0,   0,  0,  0,  0, ],   # AR87 >= 0.5 mL
-
-        [0, 0,  0, 0, 0,  0,   0,  -1,  0,  0, ],    # RB <= 0.5 mL
-
-        [0, 0,  0,  -1, 0,  0,   0,  0,  0,  0, ],   # NaCL >= 0.5 mL
-
-        [0, 0,  0,  0, 0,  0,   0,  0,  -1,  0, ],    # SDS >= 0.5 mL
-
-        [0, 0,  0,  0, 0,  0,   -1,  0,  0,  0, ],   # PVP >= 0.5 mL
-    ])
-
-    const_inequalities = np.array([
-        -0.5,   # MB >= 0.5 mg
-
-        -0.5,   # AR87 >= 0.5 mL
-
-        -0.5,   # RB >= 0.5 mL
-
-        -0.5,   # NaCl >= 0.5 mL
-
-        -0.5,   # SDS >= 0.5 mL
-
-        -0.5,   # PVP >= 0.5 mL
-    ])
+    const_inequalities = np.array(
+        [
+            -0.5,  # MB >= 0.5 mg
+            -0.5,  # AR87 >= 0.5 mL
+            -0.5,  # RB >= 0.5 mL
+            -0.5,  # NaCl >= 0.5 mL
+            -0.5,  # SDS >= 0.5 mL
+            -0.5,  # PVP >= 0.5 mL
+        ]
+    )
 
     bizarro_world = Hypothesis(
         name=name,
@@ -743,7 +1310,7 @@ def _get_HER_hypotheses():
         [perfect_hindsight],
         [what_we_kew],
         [bizarro_world],
-        virtual_chemists_team
+        virtual_chemists_team,
     ]
 
     return scenarios_list
@@ -756,21 +1323,23 @@ def _get_branin_hypotheses():
     coeff_equalities = None
     const_equalities = None
 
-    coeff_inequalities = np.array([
-        [-1, 0],   # x1 >= 4
-        [1,  0],   # x1 <= 6
+    coeff_inequalities = np.array(
+        [
+            [-1, 0],  # x1 >= 4
+            [1, 0],  # x1 <= 6
+            [0, -1],  # x2 >= 13
+            [0, 1],  # x2 <= 15
+        ]
+    )
 
-        [0, -1],   # x2 >= 13
-        [0,  1],   # x2 <= 15
-    ])
-
-    const_inequalities = np.array([
-        -4,  # x1 >= 4
-        6,  # x1 <= 6
-
-        -13,
-        15,
-    ])
+    const_inequalities = np.array(
+        [
+            -4,  # x1 >= 4
+            6,  # x1 <= 6
+            -13,
+            15,
+        ]
+    )
 
     hyp_poor = Hypothesis(
         name="Poor",
@@ -788,21 +1357,23 @@ def _get_branin_hypotheses():
     coeff_equalities = None
     const_equalities = None
 
-    coeff_inequalities = np.array([
-        [-1, 0],   # x1 >= 3
-        [1,  0],   # x1 <= 5
+    coeff_inequalities = np.array(
+        [
+            [-1, 0],  # x1 >= 3
+            [1, 0],  # x1 <= 5
+            [0, -1],  # x2 >= 5
+            [0, 1],  # x2 <= 7
+        ]
+    )
 
-        [0, -1],   # x2 >= 5
-        [0,  1],   # x2 <= 7
-    ])
-
-    const_inequalities = np.array([
-        -3,  # x1 >= 3
-        5,  # x1 <= 5
-
-        -5,
-        7,
-    ])
+    const_inequalities = np.array(
+        [
+            -3,  # x1 >= 3
+            5,  # x1 <= 5
+            -5,
+            7,
+        ]
+    )
 
     hyp_bad = Hypothesis(
         name="Weak",
@@ -820,21 +1391,23 @@ def _get_branin_hypotheses():
     coeff_equalities = None
     const_equalities = None
 
-    coeff_inequalities = np.array([
-        [-1, 0],   # x1 >=
-        [1,  0],   # x1 <=
+    coeff_inequalities = np.array(
+        [
+            [-1, 0],  # x1 >=
+            [1, 0],  # x1 <=
+            [0, -1],  # x2 >=
+            [0, 1],  # x2 <=
+        ]
+    )
 
-        [0, -1],   # x2 >=
-        [0,  1],   # x2 <=
-    ])
-
-    const_inequalities = np.array([
-        -np.pi + 0.5,  # x1 >= 3
-        np.pi + 0.5,  # x1 <= 5
-
-        -2.275 + 0.5,
-        2.275 + 0.5,
-    ])
+    const_inequalities = np.array(
+        [
+            -np.pi + 0.5,  # x1 >= 3
+            np.pi + 0.5,  # x1 <= 5
+            -2.275 + 0.5,
+            2.275 + 0.5,
+        ]
+    )
 
     hyp_good = Hypothesis(
         name="Good",
@@ -860,8 +1433,8 @@ def _get_branin_hypotheses():
 
 
 def get_scenarios(
-        func_name: str,
-        dim: int = 4,
+    func_name: str,
+    dim: int = 4,
 ):
     if func_name == "HER":
         scenarios = _get_HER_hypotheses()
@@ -883,22 +1456,16 @@ def get_scenarios(
     sol = func.problem.xopt
 
     poor_hypothesis = get_poor_hypothesis(
-        lb=func.problem.lb,
-        ub=func.problem.ub,
-        size=hypothesis_size,
-        sol=sol)
+        lb=func.problem.lb, ub=func.problem.ub, size=hypothesis_size, sol=sol
+    )
 
     weak_hypothesis = get_weak_hypothesis(
-        lb=func.problem.lb,
-        ub=func.problem.ub,
-        size=hypothesis_size,
-        sol=sol)
+        lb=func.problem.lb, ub=func.problem.ub, size=hypothesis_size, sol=sol
+    )
 
     good_hypothesis = get_good_hypothesis(
-        lb=func.problem.lb,
-        ub=func.problem.ub,
-        size=hypothesis_size,
-        sol=sol)
+        lb=func.problem.lb, ub=func.problem.ub, size=hypothesis_size, sol=sol
+    )
 
     scenarios = [
         [poor_hypothesis],
@@ -916,5 +1483,5 @@ def get_scenario_name(scenario):
         return "No hypothesis"
     elif len(scenario) > 3:
         return "Mixed Starting Hypotheses"
-    name = '_'.join([s.name for s in scenario])
+    name = "_".join([s.name for s in scenario])
     return name

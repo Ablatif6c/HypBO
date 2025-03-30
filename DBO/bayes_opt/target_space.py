@@ -48,10 +48,10 @@ class TargetSpace(object):
         self.target_func = target_func
 
         # Get the name of the parameters
-        self._keys = sorted(pbounds)
+        self._keys = list(pbounds.keys())
         # Create an array with parameters bounds
         self._bounds = np.array(
-            [item[1] for item in sorted(pbounds.items(), key=lambda x: x[0])],
+            [item[1] for item in pbounds.items()],
             dtype=np.float
         )
 
@@ -101,7 +101,7 @@ class TargetSpace(object):
                     assert set(p) == set(self.keys)
                 except AssertionError:
                     raise ValueError(
-                        "Parameters' keys ({}) do ".format(sorted(params)) +
+                        "Parameters' keys ({}) do ".format(params) +
                         "not match the expected set of keys ({}).".format(self.keys)
                     )
                 x.append(np.asarray([p[key] for key in self.keys]))
@@ -110,7 +110,7 @@ class TargetSpace(object):
                 assert set(params) == set(self.keys)
             except AssertionError:
                 raise ValueError(
-                    "Parameters' keys ({}) do ".format(sorted(params)) +
+                    "Parameters' keys ({}) do ".format(params) +
                     "not match the expected set of keys ({}).".format(self.keys)
                 )
             x = np.asarray([params[key] for key in self.keys])
@@ -323,14 +323,14 @@ class DiscreteSpace(TargetSpace):
         self.target_func = target_func
 
         # Get the name of the parameters
-        self._keys = sorted(pbounds)
+        self._keys = list(pbounds.keys())
         
         # Get associated pbounds for TargetSpace()
-        self._pbounds = {item[0] :(item[1][:2]) for item in sorted(pbounds.items(), key=lambda x: x[0])}
+        self._pbounds = {item[0] :(item[1][:2]) for item in pbounds.items()}
         
         # Create an array with parameters steps
         self._steps = np.array(
-            [item[1][-1] for item in sorted(pbounds.items(), key=lambda x: x[0])],
+            [item[1][-1] for item in pbounds.items()],
             dtype=np.float
             )
         

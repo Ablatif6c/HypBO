@@ -16,7 +16,7 @@ import argparse
 from multiprocessing import Process
 
 from DBO.bayes_opt.bayesian_optimization import DiscreteBayesianOptimization
-from hypbo import HypBO
+from hypbo.hypbo import HypBO
 from utils import get_function, get_scenario_name, get_scenarios
 
 # Initialize parser
@@ -115,17 +115,17 @@ def run_scenario(scenario=[], seed: int = 0):
 
     # Initialize HypBO object
     hbo = HypBO(
-        func=func,
+        experiment=func,
         feature_names=feature_names,
         model=DiscreteBayesianOptimization,
         model_kwargs=model_kwargs,
         hypotheses=scenario,
-        seed=seed,
+        random_seed=seed,
         n_processes=n_processes,
     )
 
     # Perform the search
-    hbo.search(budget=budget, n_init=n_init, batch=batch)
+    hbo.maximize(budget=budget, n_init=n_init, batch_size=batch)
 
     # Save the data
     hbo.save_data(

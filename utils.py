@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 import resources.functions.standard_test_functions as fcts
-from hypothesis import Hypothesis
+from hypbo.hypothesis import Hypothesis
 from resources.functions.her_function import HER
 from resources.functions.test_problem import TestProblem
 

@@ -22,14 +22,22 @@ from typing import List
 import numpy as np
 
 from DBO.bayes_opt.bayesian_optimization import BayesianOptimization
-from hypbo import HypBO
-from hypothesis import Hypothesis
+from hypbo.hypbo import HypBO
+from hypbo.hypothesis import Hypothesis
 from utils import get_function, get_scenario_name, get_scenarios
 
 
-def run_hypbo(gamma: float, function_name: str, dimension: int,
-              scenario: List[Hypothesis], trial: int,
-              trials: int, batch: int, n_init: int, budget: int) -> None:
+def run_hypbo(
+    gamma: float,
+    function_name: str,
+    dimension: int,
+    scenario: List[Hypothesis],
+    trial: int,
+    trials: int,
+    batch: int,
+    n_init: int,
+    budget: int,
+) -> None:
     """
     Run the HypBO optimization algorithm.
 
@@ -58,33 +66,29 @@ def run_hypbo(gamma: float, function_name: str, dimension: int,
     # HypBO parameters
     param_bounds = func.bound
     feature_names = list(param_bounds.keys())
-    model_kwargs = {
-        "pbounds": param_bounds,
-        "random_seed": trial
-    }
+    model_kwargs = {"pbounds": param_bounds, "random_seed": trial}
     hypbo_params = {
-        'func': func,
-        'feature_names': feature_names,
-        'model': BayesianOptimization,
-        'model_kwargs': model_kwargs,
-        'hypotheses': scenario,
-        'seed': trial,
-        'discretization': False,
-        'global_failure_limit': 5,
-        'local_failure_limit': 2,
-        'gamma': gamma
+        "func": func,
+        "feature_names": feature_names,
+        "model": BayesianOptimization,
+        "model_kwargs": model_kwargs,
+        "hypotheses": scenario,
+        "seed": trial,
+        "discretization": False,
+        "global_failure_limit": 5,
+        "local_failure_limit": 2,
+        "gamma": gamma,
     }
 
     # Create the HypBO object
     hypbo = HypBO(**hypbo_params)
 
     # Run the optimization
-    hypbo.search(budget=budget, n_init=n_init, batch=batch)
+    hypbo.maximize(budget=budget, n_init=n_init, batch_size=batch)
 
     # Save the data.
     # Get the folder path to save the data.
-    folder_path = os.path.join(
-        "data", "ablation_studies",  "gamma", str(gamma))
+    folder_path = os.path.join("data", "ablation_studies", "gamma", str(gamma))
 
     # Create folders if they don't exist
     os.makedirs(folder_path, exist_ok=True)
@@ -92,10 +96,11 @@ def run_hypbo(gamma: float, function_name: str, dimension: int,
     hypbo.save_data(
         func_name=f"{func.name}_d{func.dim}",
         scenario_name=get_scenario_name(scenario=scenario),
-        folder_path=folder_path)
+        folder_path=folder_path,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Generating 5 logarithmically spaced values between 0.1 and 1
     gamma_values = np.logspace(-1, 0, 5)
 
@@ -122,7 +127,16 @@ if __name__ == '__main__':
                     futures = []
                     for scenario in all_scenarios:
                         future = executor.submit(
-                            run_hypbo, gamma, function_name, dimension,
-                            scenario, trial, trials, batch, n_init, budget)
+                            run_hypbo,
+                            gamma,
+                            function_name,
+                            dimension,
+                            scenario,
+                            trial,
+                            trials,
+                            batch,
+                            n_init,
+                            budget,
+                        )
                         futures.append(future)
                     concurrent.futures.wait(futures)

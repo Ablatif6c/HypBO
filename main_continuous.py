@@ -19,8 +19,8 @@ from multiprocessing import Process
 from typing import List
 
 from DBO.bayes_opt.bayesian_optimization import BayesianOptimization
-from hypbo import HypBO
-from hypothesis import Hypothesis
+from hypbo.hypbo import HypBO
+from hypbo.hypothesis import Hypothesis
 from utils import get_function, get_scenario_name, get_scenarios
 
 # Initialize parser
@@ -143,21 +143,21 @@ def run_hypbo(func, scenarios: List[List[Hypothesis]], seed: int = 0):
     # Create hypbo with the params and do the search.
     print(f"Upper vs. Lower: {upper_limit} vs. {lower_limit}")
     hypbo = HypBO(
-        func=func,
+        experiment=func,
         feature_names=feature_names,
         model=BayesianOptimization,
         model_kwargs=model_kwargs,
         hypotheses=scenarios,
-        seed=seed,
+        random_seed=seed,
         n_processes=n_processes,
         discretization=False,
         global_failure_limit=upper_limit,
         local_failure_limit=lower_limit,
     )
-    hypbo.search(
+    hypbo.maximize(
         budget=budget,
         n_init=n_init,
-        batch=batch,
+        batch_size=batch,
     )
 
     if ablation_studies:

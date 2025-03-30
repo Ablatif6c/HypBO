@@ -335,9 +335,8 @@ class DiscreteBayesianOptimization(BayesianOptimization):
 
         # Data structure containing the function to be optimized, the bounds of
         # its domain, and a record of the evaluations we have done so far
-        self._pbounds = {item[0]: (item[1][:2]) for item in sorted(
-            pbounds.items(),
-            key=lambda x: x[0])}
+        self._pbounds = {item[0]: (item[1][:2]) for item in 
+            pbounds.items()}
         super(DiscreteBayesianOptimization, self).__init__(
             f=f,
             pbounds=self._pbounds,

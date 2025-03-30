@@ -1,3 +1,0 @@
-# Formatting and linting
-black
-flake8
