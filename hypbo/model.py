@@ -1,5 +1,4 @@
 import torch
-from typing import Dict, Tuple
 import uuid
 from botorch.acquisition import qLogExpectedImprovement
 from botorch.fit import fit_gpytorch_mll
@@ -9,7 +8,7 @@ from botorch.models.transforms.outcome import Standardize
 from botorch.optim.optimize import optimize_acqf
 from botorch.sampling.normal import SobolQMCNormalSampler
 from gpytorch.mlls import ExactMarginalLogLikelihood
-from typing import List, Callable, Optional, Tuple
+from typing import Dict, List, Callable, Optional, Tuple
 
 tkwargs = {
     "device": "cuda" if torch.cuda.is_available() else "cpu",
@@ -71,8 +70,24 @@ class Model:
         self.gp: SingleTaskGP = None
 
     @property
+    def has_linear_eq_constraints(self):
+        return self.constraints.get("linear_eq_constraints", None) is not None
+
+    @property
+    def has_linear_ineq_constraints(self):
+        return self.constraints.get("linear_ineq_constraints", None) is not None
+
+    @property
     def has_nonlinear_constraints(self):
         return self.constraints.get("nonlinear_constraints", None) is not None
+
+    @property
+    def has_ic_generator(self):
+        return self.constraints.get("ic_generator", None) is not None
+
+    @property
+    def has_is_feasible(self):
+        return self.constraints.get("is_feasible", None) is not None
 
     def init_constraints(
         self,
@@ -108,11 +123,55 @@ class Model:
         return points
 
     def generate_random_candidates(self, n) -> torch.Tensor:
-        candidates = (
-            torch.rand(n, self.bounds.shape[1], **tkwargs)
-            * (self.bounds[1, :] - self.bounds[0, :])
-            + self.bounds[0, :]
-        )
+        if self.has_ic_generator:
+            candidates = self.constraints["ic_generator"](
+                None,
+                self.bounds,
+                n,
+                **tkwargs,
+            )
+        elif self.has_is_feasible:
+            candidates = torch.empty((0, self.bounds.shape[1]), **tkwargs)
+            for _ in range(self.num_restarts):
+                new_candidates = (
+                    torch.rand(n, self.bounds.shape[1], **tkwargs)
+                    * (self.bounds[1, :] - self.bounds[0, :])
+                    + self.bounds[0, :]
+                )
+                mask = self.constraints["is_feasible"](new_candidates)
+                candidates = torch.cat(
+                    (candidates, new_candidates[mask]),
+                    dim=0,
+                )
+                if candidates.shape[0] >= n:
+                    break
+            if candidates.shape[0] == 0:
+                raise RuntimeError("Could not generate feasible initial conditions.")
+        elif self.has_linear_eq_constraints:
+            # TODO put this in a function
+            candidates = torch.empty((0, self.bounds.shape[1]), **tkwargs)
+            for A, b, _ in self.constraints["linear_eq_constraints"]:
+                new_candidates = (
+                    torch.rand(n, self.bounds.shape[1], **tkwargs)
+                    * (self.bounds[1, :] - self.bounds[0, :])
+                    + self.bounds[0, :]
+                )
+                mask = torch.abs(A @ new_candidates.T - b) < 1e-3
+                candidates = torch.cat(
+                    (candidates, new_candidates[mask]),
+                    dim=0,
+                )
+                if candidates.shape[0] >= n:
+                    break
+            if candidates.shape[0] == 0:
+                raise RuntimeError("Could not generate feasible initial conditions.")
+        else:
+            candidates = (
+                torch.rand(n, self.bounds.shape[1], **tkwargs)
+                * (self.bounds[1, :] - self.bounds[0, :])
+                + self.bounds[0, :]
+            )
+
         if self.discretization_steps is not None:
             candidates = self.discretize_if_necessary(candidates)
         return candidates
@@ -120,8 +179,19 @@ class Model:
     def filter_data(
         self, x: torch.Tensor, y: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # Filter the data to only include points within the bounds
-        mask = torch.all((x >= self.bounds[0, :]) & (x <= self.bounds[1, :]), dim=1)
+        mask = torch.all(
+            (x >= self.bounds[0, :]) & (x <= self.bounds[1, :]),
+            dim=1,
+        )
+        if self.has_is_feasible:
+            mask_constraints = self.constraints["is_feasible"](x)
+            mask = mask & mask_constraints
+        elif self.has_linear_eq_constraints:
+            for A, b, _ in self.constraints["linear_eq_constraints"]:
+                mask = mask & (torch.abs(A @ x.T - b) < 1e-3)
+        elif self.has_linear_ineq_constraints:
+            for A, b, _ in self.constraints["linear_ineq_constraints"]:
+                mask = mask & (A @ x.T <= b)
         masked_x = x[mask]
         masked_y = y[mask]
         return masked_x, masked_y

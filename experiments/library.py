@@ -56,6 +56,72 @@ class ExperimentTemplate:
             return self.base_experiment.discretization_steps
         return None
 
+    @property
+    def bounds(self):
+        """
+        Retrieve the bounds of the experiment.
+
+        Returns:
+            A tensor of shape (2, D) where D is the number of dimensions.
+            The first row contains lower bounds and the second row contains upper bounds.
+        """
+        return self.base_experiment.bounds
+
+    @property
+    def dim(self):
+        """
+        Retrieve the number of dimensions of the experiment.
+
+        Returns:
+            An integer representing the number of dimensions.
+        """
+        return self.base_experiment.dim
+
+    @property
+    def feature_names(self):
+        """
+        Retrieve the names of the experiment's features.
+
+        Returns:
+            A list of strings containing the names of the experiment's features.
+        """
+        feature_names = []
+        if hasattr(self.base_experiment, "feature_names"):
+            feature_names = self.base_experiment.feature_names
+        else:
+            for i in range(self.dim):
+                feature_names.append(f"x{i+1}")
+
+        return feature_names
+
+    @property
+    def pbounds(self):
+        feature_names = self.feature_names
+        pbounds = {
+            feature_names[i]: (
+                self.bounds[0, i].item(),
+                self.bounds[1, i].item(),
+                None,
+            )
+            for i in range(self.dim)
+        }
+        if self.discretization_steps is not None:
+            for k, v in pbounds.items():
+                pbounds[k] = (v[0], v[1], self.discretization_steps)
+        return pbounds
+
+    @property
+    def optimums(self):
+        """
+        Retrieve the optimums for the experiment.
+
+        Returns:
+            A list of optimizers.
+        """
+        if hasattr(self.base_experiment, "_optimizers"):
+            return self.base_experiment._optimizers
+        return None
+
     def get_all_constraints(self) -> Dict[str, Optional[Any]]:
         """
         Retrieve constraints and an initial condition generator if applicable.

@@ -20,11 +20,12 @@ import warnings
 from typing import Callable, Tuple, List
 from collections import deque
 import numpy as np
-from model import Model
+from .model import Model
 from typing import Dict
 import logging
 from enum import Enum
 import pandas as pd
+
 
 warnings.filterwarnings("ignore")
 
@@ -74,7 +75,7 @@ class HypBO:
                 "global",
                 pbounds,
                 random_seed=random_seed,
-                constraints=self.constraints,
+                **self.constraints,
             ),
         ]
         self.global_model_id = self.models[0].id
@@ -98,7 +99,8 @@ class HypBO:
     def has_hypotheses(self) -> bool:
         return len(self.models) > 1
 
-    def add_hypothesis(self, hypothesis: Model) -> None:
+    def add_hypothesis(self, name: str, pbounds: Dict[str, Tuple[float, float, float]]):
+        hypothesis = Model(name, pbounds, **self.constraints)
         self.models = [hypothesis] + self.models
 
     def split_n_init(self):
@@ -404,28 +406,3 @@ class HypBO:
         data.update({"level": self.models_to_levels(self.train_model_ids)})
         df = pd.DataFrame(data)
         df.to_csv(filename, index=False)
-
-
-if __name__ == "__main__":
-    from botorch.test_functions.synthetic import Ackley
-
-    experiment = Ackley(negate=True, dim=2)
-    hypbo = HypBO(
-        experiment=experiment,
-        pbounds={"x1": (-32, 32, 0.5), "x2": (-32, 32, 1)},
-    )
-    hypbo.add_hypothesis(
-        Model("Good", {"x1": (-5, 5, 0.5), "x2": (-5, 5, 1)}),
-    )
-    hypbo.add_hypothesis(
-        Model("Weak", {"x1": (-15, 15, 0.5), "x2": (-15, 15, 1)}),
-    )
-    hypbo.add_hypothesis(
-        Model("Poor", {"x1": (20, 30, 0.5), "x2": (25, 32, 1)}),
-    )
-    hypbo.maximize(
-        n_init=1,
-        budget=30,
-        batch_size=3,
-    )
-    hypbo.save_data("ackley_data.csv")
