@@ -17,7 +17,7 @@ import concurrent.futures
 import uuid
 import torch
 import warnings
-from typing import Callable, Tuple, List
+from typing import Callable, Tuple, List, Optional
 from collections import deque
 import numpy as np
 from .model import Model
@@ -54,6 +54,7 @@ class HypBO:
         local_failure_limit: int = 2,
         gamma: float = 0.0,
         verbose: bool = True,
+        decimals: int = 3,
     ):
         self.experiment = experiment
         self.constraints = experiment.get_all_constraints()
@@ -63,8 +64,9 @@ class HypBO:
 
         # Data
         self.queue = deque()
-        self.train_x: torch.Tensor = None
-        self.train_y: torch.Tensor = None
+        self.train_x: Optional[torch.Tensor] = None
+        self.train_y: Optional[torch.Tensor] = None
+        self.train_iteration: Optional[torch.Tensor] = None
         self.train_model_ids: List[uuid.UUID] = []
         self.best_sample = {p: None for p in pbounds.keys()}
         self.best_sample[self.target_feature] = -np.inf
@@ -72,15 +74,13 @@ class HypBO:
         # Models
         self.models = [
             Model(
-                "global",
+                "Global",
                 pbounds,
                 random_seed=random_seed,
                 **self.constraints,
             ),
         ]
         self.global_model_id = self.models[0].id
-
-        # Tracking
 
         # Optimizer parameters
         self.gamma = gamma
@@ -89,6 +89,7 @@ class HypBO:
         self.LOCAL_LIMIT = local_failure_limit
 
         # Logging
+        self.decimals = decimals
         logging.basicConfig(
             level=logging.DEBUG if verbose else logging.INFO,
             format="%(asctime)s - %(levelname)s - %(message)s",
@@ -172,7 +173,11 @@ class HypBO:
             if model.id == self.global_model_id:
                 return []
 
-            model_batch, acq_values = model.recommend(self.batch_size)
+            model_batch, acq_values = model.recommend(
+                self.batch_size,
+                best_f=self.train_y.max().item(),
+            )
+            acq_values = acq_values.view(-1, 1)  # Ensure acq values is 2D
             return [
                 (candidate, model.id, acq_val.item())
                 for candidate, acq_val in zip(model_batch, acq_values)
@@ -195,7 +200,10 @@ class HypBO:
 
     def get_global_recommendation(self):
         global_model = self.get_model(self.global_model_id)
-        candidates, _ = global_model.recommend(self.batch_size)
+        candidates, _ = global_model.recommend(
+            self.batch_size,
+            best_f=self.train_y.max().item(),
+        )
         return [(candidate, self.global_model_id) for candidate in candidates]
 
     def get_model(self, id):
@@ -297,6 +305,21 @@ class HypBO:
         else:
             self.failures = 0
 
+    def format_sample(self, sample: Dict[str, float]) -> Dict[str, str]:
+        """
+        Format the sample for logging.
+
+        Args:
+            sample (Dict[str, float]): The sample to format.
+
+        Returns:
+            Dict[str, str]: The formatted sample.
+        """
+        return {
+            k: (f"{v:.{self.decimals}f}" if isinstance(v, (int, float)) else v)
+            for k, v in sample.items()
+        }
+
     def update_best_sample(self, x_batch: torch.Tensor, y_batch: torch.Tensor):
         """
         Update the best sample based on the current batch.
@@ -310,7 +333,7 @@ class HypBO:
             self.best_sample.update(
                 {k: v for k, v in zip(self.pbounds.keys(), point.tolist())}
             )
-            logging.info(f"Best sample: {self.best_sample}")
+            logging.info(f"Best sample: {self.format_sample(self.best_sample)}")
 
     def probe(self, batch: List[Tuple[torch.Tensor, str]]):
         x_batch = torch.stack(
@@ -330,10 +353,22 @@ class HypBO:
             if self.train_y is not None
             else y_batch
         )
+        self.train_iteration = (
+            torch.cat(
+                [
+                    self.train_iteration,
+                    torch.full((x_batch.shape[0],), self.train_iteration[-1] + 1),
+                ]
+            )
+            if self.train_iteration is not None
+            else torch.full((x_batch.shape[0],), 1)
+        )
 
         # Log the batch data
-        features = dict(zip(self.pbounds.keys(), x_batch.cpu().numpy().T))
-        targets = y_batch.cpu().numpy()
+        features = dict(
+            zip(self.pbounds.keys(), np.round(x_batch.cpu().numpy().T, self.decimals))
+        )
+        targets = np.round(y_batch.cpu().numpy(), self.decimals)
         data = features
         data.update({self.target_feature: targets})
         data.update({"model_name": [self.get_model(m_id).name for m_id in model_ids]})
@@ -385,24 +420,27 @@ class HypBO:
             iteration += 1
 
         logging.info("Maximization completed.")
+        logging.info(f"Best sample: {self.format_sample(self.best_sample)}")
 
-    def save_data(self, filename: str):
+    def save_data(self, filepath: str):
         """
         Save the data to a CSV file.
 
         Args:
-            filename (str): The name of the file to save the data to.
+            filepath (str): The path of the file to save the data to.
         """
         if self.train_x is None or self.train_y is None:
             raise ValueError("No training data available to save.")
 
         features = dict(zip(self.pbounds.keys(), self.train_x.cpu().numpy().T))
         targets = self.train_y.cpu().numpy()
+        iterations = self.train_iteration.cpu().numpy()
         data = features
         data.update({self.target_feature: targets})
         data.update(
             {"model_name": [self.get_model(m_id).name for m_id in self.train_model_ids]}
         )
         data.update({"level": self.models_to_levels(self.train_model_ids)})
+        data.update({"iteration": iterations})
         df = pd.DataFrame(data)
-        df.to_csv(filename, index=False)
+        df.to_csv(filepath, index=False)

@@ -1,6 +1,0 @@
-numpy
-torch
-gpytorch
-scikit-learn
-matplotlib
-gym[mujoco]

@@ -70,6 +70,14 @@ class Model:
         self.gp: SingleTaskGP = None
 
     @property
+    def has_constraints(self):
+        return (
+            self.has_linear_eq_constraints
+            or self.has_linear_ineq_constraints
+            or self.has_nonlinear_constraints
+        )
+
+    @property
     def has_linear_eq_constraints(self):
         return self.constraints.get("linear_eq_constraints", None) is not None
 
@@ -80,10 +88,6 @@ class Model:
     @property
     def has_nonlinear_constraints(self):
         return self.constraints.get("nonlinear_constraints", None) is not None
-
-    @property
-    def has_ic_generator(self):
-        return self.constraints.get("ic_generator", None) is not None
 
     @property
     def has_is_feasible(self):
@@ -97,6 +101,7 @@ class Model:
         ic_generator,
         is_feasible,
     ):
+        # Initialize constraints and initial condition generator
         for c_name, c in [
             ("linear_eq_constraints", linear_eq_constraints),
             ("linear_ineq_constraints", linear_ineq_constraints),
@@ -106,7 +111,18 @@ class Model:
         ]:
             if c:
                 self.constraints[c_name] = c
-        if self.constraints != {}:
+
+        # Check for constraints and initial condition generator
+        if self.has_constraints and (
+            self.constraints.get("ic_generator", None) is None
+            or self.constraints.get("is_feasible", None) is None
+        ):
+            raise ValueError(
+                "IC generator and is_feasible must be provided when constraints are present."
+            )
+
+        # Get starting initial conditions if applicable
+        if self.has_constraints:
             self.constraints["batch_initial_conditions"] = ic_generator(
                 None,
                 self.bounds,
@@ -123,48 +139,13 @@ class Model:
         return points
 
     def generate_random_candidates(self, n) -> torch.Tensor:
-        if self.has_ic_generator:
+        if self.has_constraints:
             candidates = self.constraints["ic_generator"](
                 None,
                 self.bounds,
                 n,
                 **tkwargs,
             )
-        elif self.has_is_feasible:
-            candidates = torch.empty((0, self.bounds.shape[1]), **tkwargs)
-            for _ in range(self.num_restarts):
-                new_candidates = (
-                    torch.rand(n, self.bounds.shape[1], **tkwargs)
-                    * (self.bounds[1, :] - self.bounds[0, :])
-                    + self.bounds[0, :]
-                )
-                mask = self.constraints["is_feasible"](new_candidates)
-                candidates = torch.cat(
-                    (candidates, new_candidates[mask]),
-                    dim=0,
-                )
-                if candidates.shape[0] >= n:
-                    break
-            if candidates.shape[0] == 0:
-                raise RuntimeError("Could not generate feasible initial conditions.")
-        elif self.has_linear_eq_constraints:
-            # TODO put this in a function
-            candidates = torch.empty((0, self.bounds.shape[1]), **tkwargs)
-            for A, b, _ in self.constraints["linear_eq_constraints"]:
-                new_candidates = (
-                    torch.rand(n, self.bounds.shape[1], **tkwargs)
-                    * (self.bounds[1, :] - self.bounds[0, :])
-                    + self.bounds[0, :]
-                )
-                mask = torch.abs(A @ new_candidates.T - b) < 1e-3
-                candidates = torch.cat(
-                    (candidates, new_candidates[mask]),
-                    dim=0,
-                )
-                if candidates.shape[0] >= n:
-                    break
-            if candidates.shape[0] == 0:
-                raise RuntimeError("Could not generate feasible initial conditions.")
         else:
             candidates = (
                 torch.rand(n, self.bounds.shape[1], **tkwargs)
@@ -186,12 +167,6 @@ class Model:
         if self.has_is_feasible:
             mask_constraints = self.constraints["is_feasible"](x)
             mask = mask & mask_constraints
-        elif self.has_linear_eq_constraints:
-            for A, b, _ in self.constraints["linear_eq_constraints"]:
-                mask = mask & (torch.abs(A @ x.T - b) < 1e-3)
-        elif self.has_linear_ineq_constraints:
-            for A, b, _ in self.constraints["linear_ineq_constraints"]:
-                mask = mask & (A @ x.T <= b)
         masked_x = x[mask]
         masked_y = y[mask]
         return masked_x, masked_y
@@ -208,13 +183,15 @@ class Model:
         mll = ExactMarginalLogLikelihood(self.gp.likelihood, self.gp)
         fit_gpytorch_mll(mll)
 
-    def recommend(self, batch_size: int) -> Tuple[torch.Tensor, List[float]]:
+    def recommend(
+        self, batch_size: int, best_f: Optional[float]
+    ) -> Tuple[torch.Tensor, List[float]]:
         if self.train_x is None or self.train_y is None:
             raise ValueError("Model has not been updated with training data.")
 
         qei = qLogExpectedImprovement(
             self.gp,
-            best_f=self.train_y.max(),
+            best_f=best_f if best_f is not None else self.train_y.max().item(),
             sampler=self.sampler,
         )
         batch, acq_values = optimize_acqf(

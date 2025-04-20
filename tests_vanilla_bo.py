@@ -1,6 +1,5 @@
 from experiments.library import get_experiment
-from hypbo.hypbo import HypBO
-from hypbo.utils import HypothesisHelper
+from hypbo.vanilla_bo import BO
 from pathlib import Path
 import torch
 import argparse
@@ -32,7 +31,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     experiment_name = args.experiment
-    for random_seed in range(1):
+    for random_seed in range(5):
         print(
             f"------------------ Running experiment {experiment_name} with seed {random_seed}"
         )
@@ -42,32 +41,11 @@ if __name__ == "__main__":
             random_seed=random_seed,
             noise=False,
         )
-        hypbo = HypBO(
+        bo = BO(
             experiment=experiment,
             pbounds=experiment.pbounds,
         )
-        optimum = (
-            experiment.optimums[0]
-            if experiment.optimums
-            else torch.zeros(experiment.dim, **tkwargs)
-        )
-        if not isinstance(optimum, torch.Tensor):
-            optimum = torch.tensor(optimum, **tkwargs)
-        hypotheses = HypothesisHelper(
-            experiment_pbounds=experiment.pbounds,
-            size=torch.tensor([2.0] * experiment.dim, **tkwargs),
-            optimum=optimum,
-        ).create_hypotheses()
-
-        for hypothesis in hypotheses:
-            if hypothesis["name"] == "Good":
-                continue
-            hypbo.add_hypothesis(
-                name=hypothesis["name"],
-                pbounds=hypothesis["pbounds"],
-            )
-
-        hypbo.maximize(
+        bo.maximize(
             n_init=5,
             budget=100,
             batch_size=1,
@@ -75,10 +53,9 @@ if __name__ == "__main__":
         filepath = (
             Path("data")
             / "new_version"
-            / "hypbo"
-            / "mixed"
+            / "vanilla_bo"
             / f"{experiment_name}_{experiment.dim}"
             / f"{experiment_name}_s{random_seed}.csv"
         )
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        hypbo.save_data(filepath)
+        bo.save_data(filepath)

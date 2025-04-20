@@ -237,16 +237,59 @@ library = [
     TensionCompressionString,
     SpeedReducer,
 ]
-library = {func.__name__: ExperimentTemplate(func(negate=True)) for func in library}
+
+library = {experiment.__name__: experiment for experiment in library}
+
+
+def get_experiment(
+    experiment_name: str,
+    dim: int,
+    random_seed: int,
+    noise: bool = True,
+) -> ExperimentTemplate:
+    """
+    Retrieve an experiment template by name.
+
+    Args:
+        experiment_name: The name of the experiment.
+        random_seed: The random seed for reproducibility.
+        noise: Whether to add noise to the experiment.
+
+    Returns:
+        An instance of ExperimentTemplate or None if not found.
+    """
+    torch.manual_seed(random_seed)
+    if torch.device(tkwargs["device"]).type == "cuda":
+        torch.cuda.manual_seed_all(random_seed)
+
+    func = library.get(experiment_name, None)
+    if func is None:
+        raise ValueError(
+            f"Experiment {experiment_name} not found in the library. Available experiments: {list(library.keys())}"
+        )
+
+    experiment = ExperimentTemplate(
+        func(
+            dim=dim,
+            negate=True,
+            noise_std=0.1 if noise else None,
+        ).to(**tkwargs),
+    )
+    return experiment
+
 
 if __name__ == "__main__":
-    func_test = Ackley()
-    exp_test = ExperimentTemplate(func_test)
+    exp_test = get_experiment(
+        "Ackley",
+        dim=2,
+        random_seed=42,
+        noise=False,
+    )
     constraints = exp_test.get_all_constraints()
     if constraints["ic_generator"]:
         initial_conditions = constraints["ic_generator"](
             None,
-            func_test.bounds,
+            exp_test.bounds,
             10,
         )
         print(initial_conditions)
