@@ -44,7 +44,8 @@ class ExperimentTemplate:
         Initialize the experiment template.
 
         Args:
-            base_experiment: An object defining the experiment's constraints and feasibility method.
+            base_experiment: An object defining the experiment's constraints
+                and feasibility method.
             is_synthetic: Flag to indicate if the experiment is synthetic.
         """
         self.base_experiment = base_experiment

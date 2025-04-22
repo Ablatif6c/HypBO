@@ -1,3 +1,35 @@
+"""
+This module implements a Gaussian Process (GP) model for HypBO. It is used to
+represent the global model or any of the hypothesis models, to guide the search
+for optimal candidate points subject to various constraints (linear equality,
+linear inequality, and nonlinear constraints).
+
+The core functionality is encapsulated in the Model class, which provides
+methods for the following:
+1. Initializing the model with parameter bounds, discretization steps, and
+    constraints.
+2. Generating initial random candidates (or using a custom initial condition
+    generator) taking feasibility constraints into account.
+3. Filtering training data to include only points within the parameter bounds
+    and that satisfy any defined feasibility constraints.
+4. Updating the Gaussian Process model (with standardized outcomes and
+    normalized inputs) with new training data and refitting it using maximum
+    likelihood.
+5. Recommending new candidate points by optimizing the q-log expected
+    improvement acquisition function. This includes both a standard method
+    and a "fantasy" method for sequential batch optimization, where each new
+    candidate is fantasized and the GP updated iteratively.
+6. Discretizing candidate points based on specified discretization steps, if
+    provided.
+7. Handling and validating constraints by ensuring that an initial condition
+    generator and feasibility checker are provided when constraints are
+    defined.
+
+The module leverages BoTorch and GPyTorch libraries for GP modeling,
+optimization, and constraint handling, and is designed to be flexible for
+various constrained optimization scenarios using HypBO.
+"""
+
 import torch
 import uuid
 from botorch.acquisition import qLogExpectedImprovement
@@ -19,8 +51,8 @@ tkwargs = {
 
 class Model:
     """
-    A Model class that handles constraints, sampling, Gaussian Process modeling,
-    candidate generation, and recommendations using BoTorch.
+    A Model class that handles constraints, sampling, Gaussian Process
+    modeling, candidate generation, and recommendations using BoTorch.
     """
 
     def __init__(
@@ -43,21 +75,24 @@ class Model:
 
         Args:
             name (str): Name of the model.
-            pbounds (Dict[str, Tuple[float, float, float]]): Dictionary mapping parameter names
-                to a tuple (lower_bound, upper_bound, step_size).
+            pbounds (Dict[str, Tuple[float, float, float]]): Dictionary
+                mapping parameter names to a tuple (lower_bound, upper_bound, step_size).
             linear_eq_constraints (Optional[List[Tuple[torch.Tensor, torch.Tensor, float]]]):
                 List of linear equality constraints.
             linear_ineq_constraints (Optional[List[Tuple[torch.Tensor, torch.Tensor, float]]]):
                 List of linear inequality constraints.
             nonlinear_constraints (Optional[List[Tuple[torch.Tensor, torch.Tensor, float]]]):
                 List of nonlinear constraints.
-            ic_generator (Optional[Callable]): Function to generate initial conditions.
-            is_feasible (Optional[Callable]): Function to check feasibility of a candidate.
-            num_restarts (int, optional): Number of restarts during optimization. Defaults to 10.
-            mc_samples (int, optional): Number of Monte Carlo samples for acquisition function.
-                Defaults to 256.
-            raw_samples (int, optional): Number of raw samples for acquisition optimization.
-                Defaults to 512.
+            ic_generator (Optional[Callable]): Function to generate initial
+                conditions.
+            is_feasible (Optional[Callable]): Function to check feasibility of
+                a candidate.
+            num_restarts (int, optional): Number of restarts during
+                optimization. Defaults to 10.
+            mc_samples (int, optional): Number of Monte Carlo samples for
+                acquisition function. Defaults to 256.
+            raw_samples (int, optional): Number of raw samples for acquisition
+                optimization. Defaults to 512.
         """
         self.name = name
         self.id = uuid.uuid4()
@@ -185,9 +220,10 @@ class Model:
             is_feasible: Function to check feasibility of candidates.
 
         Raises:
-            ValueError: If constraints are set but either ic_generator or is_feasible is not provided.
+            ValueError: If constraints are set but either ic_generator or
+            is_feasible is not provided.
         """
-        # Add each constraint or function to the constraints dictionary if provided.
+        # Add each constraint or function to the constraints dictionary.
         for c_name, c in [
             ("linear_eq_constraints", linear_eq_constraints),
             ("linear_ineq_constraints", linear_ineq_constraints),
@@ -198,8 +234,8 @@ class Model:
             if c:
                 self.constraints[c_name] = c
 
-        # Ensure both initial condition generator and feasibility checker are provided
-        # when constraints are present.
+        # Ensure both initial condition generator and feasibility checker are
+        # provided when constraints are present.
         if self.has_constraints and (
             self.constraints.get("ic_generator", None) is None
             or self.constraints.get("is_feasible", None) is None
@@ -245,7 +281,8 @@ class Model:
             torch.Tensor: Generated candidate points.
         """
         if self.has_constraints:
-            # Use the custom initial condition generator if constraints are defined.
+            # Use the custom initial condition generator if constraints are
+            # defined.
             candidates = self.constraints["ic_generator"](
                 None,
                 self.bounds,
@@ -270,7 +307,8 @@ class Model:
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Filter input data x and corresponding output data y.
-        Only points within bounds and satisfying feasibility constraints (if defined) are kept.
+        Only points within bounds and satisfying feasibility constraints
+        (if defined) are kept.
 
         Args:
             x (torch.Tensor): Input data.
@@ -302,6 +340,7 @@ class Model:
         """
         self.train_x = x
         self.train_y = y
+
         # Initialize the GP model with standardized outcomes and normalized inputs.
         self.gp = SingleTaskGP(
             self.train_x,
@@ -324,8 +363,8 @@ class Model:
             best_f (Optional[float]): Best observed function value so far.
 
         Returns:
-            Tuple[torch.Tensor, List[float]]: Tuple containing the recommended batch of points and
-            their corresponding acquisition values.
+            Tuple[torch.Tensor, List[float]]: Tuple containing the recommended
+                batch of points and their corresponding acquisition values.
 
         Raises:
             ValueError: If the model hasn't been updated with training data.
@@ -344,7 +383,8 @@ class Model:
                 sampler=self.sampler,
             )
 
-            # Optimize the acquisition function to get a batch of new candidates.
+            # Optimize the acquisition function to get a batch of new
+            # candidates.
             constraints_excluding = {
                 k: v for k, v in self.constraints.items() if k != "is_feasible"
             }
@@ -401,7 +441,8 @@ class Model:
             candidate = self.discretize_if_necessary(candidate)
             candidate = candidate.squeeze(0)  # Shape: (d,)
 
-            # 3) Check feasibility; if infeasible, try to generate a feasible candidate.
+            # 3) Check feasibility; if infeasible, try to generate a feasible
+            # candidate.
             if not self.constraints["is_feasible"](candidate):
                 max_attempts = 10
                 for attempt in range(max_attempts):
@@ -416,7 +457,8 @@ class Model:
 
             candidates.append(candidate)
 
-            # 4) Fantasize the outcome for the candidate and update the training data.
+            # 4) Fantasize the outcome for the candidate and update the
+            # training data.
             with torch.no_grad():
                 posterior = gp.posterior(candidate.unsqueeze(0))
                 fantasy_y = posterior.mean.squeeze(-1)

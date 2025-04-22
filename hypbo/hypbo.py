@@ -17,7 +17,7 @@ import concurrent.futures
 import uuid
 import torch
 import warnings
-from typing import Callable, Tuple, List, Optional, Dict
+from typing import Callable, Tuple, List, Dict
 from collections import deque
 import numpy as np
 from .model import Model
@@ -85,7 +85,7 @@ class HypBO:
         decimals: int = 3,
     ):
         self.experiment = experiment
-        self.constraints = experiment.get_all_constraints()  # Retrieve constraints
+        self.constraints = experiment.get_all_constraints()
         self.pbounds = pbounds
         self.target_feature = target_feature
         self.seed = random_seed
@@ -144,7 +144,8 @@ class HypBO:
 
         Args:
             name (str): The name of the hypothesis.
-            pbounds (Dict[str, Tuple[float, float, float]]): Parameter bounds for the hypothesis.
+            pbounds (Dict[str, Tuple[float, float, float]]): Parameter bounds
+                for the hypothesis.
         """
         hypothesis = Model(name, pbounds, **self.constraints)
         self.models = [hypothesis] + self.models  # Prepend hypothesis to models list
@@ -154,14 +155,16 @@ class HypBO:
         Splits the initialization budget across models.
 
         Returns:
-            Dict[uuid.UUID, int]: Mapping from model ID to number of candidates.
+            Dict[uuid.UUID, int]: Mapping from model ID to number of
+                candidates.
         """
         n_candidates = self.n_init * self.batch_size
         total_models = len(self.models)
         allocation = {}
         if total_models > n_candidates:
             total_models = n_candidates
-            # Allocate one candidate for each local model while ensuring global model is included
+            # Allocate one candidate for each local model while ensuring
+            # global model is included
             local_models = [m for m in self.models if m.id != self.global_model_id][
                 : (total_models - 1)
             ]
@@ -250,7 +253,8 @@ class HypBO:
         Obtains recommendations from all local models (non-global).
 
         Returns:
-            List[Tuple[torch.Tensor, str]]: Top candidate samples from local models.
+            List[Tuple[torch.Tensor, str]]: Top candidate samples from local
+                models.
         """
         candidates = []
 
@@ -262,7 +266,7 @@ class HypBO:
                 self.batch_size,
                 best_f=self.train_y.max().item(),
             )
-            acq_values = acq_values.view(-1, 1)  # Ensure acquisition values is 2D
+            acq_values = acq_values.view(-1, 1)  # Ensure is 2D
             return [
                 (candidate, model.id, acq_val.item())
                 for candidate, acq_val in zip(model_batch, acq_values)
@@ -290,7 +294,8 @@ class HypBO:
         Obtains recommendations from the global model.
 
         Returns:
-            List[Tuple[torch.Tensor, str]]: Candidate samples from the global model.
+            List[Tuple[torch.Tensor, str]]: Candidate samples from the global
+                model.
         """
         global_model = self.get_model(self.global_model_id)
         candidates, _ = global_model.recommend(
@@ -482,10 +487,12 @@ class HypBO:
         Evaluates a batch of candidate inputs and updates training data.
 
         Args:
-            batch (List[Tuple[torch.Tensor, str]]): Candidate inputs paired with model IDs.
+            batch (List[Tuple[torch.Tensor, str]]): Candidate inputs paired
+                with model IDs.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: The evaluated inputs and outputs.
+            Tuple[torch.Tensor, torch.Tensor]: The evaluated inputs and
+                outputs.
         """
         # Stack candidate samples into a tensor and move to appropriate device and dtype
         x_batch = torch.stack(
