@@ -276,22 +276,3 @@ def get_experiment(
         ).to(**tkwargs),
     )
     return experiment
-
-
-if __name__ == "__main__":
-    exp_test = get_experiment(
-        "Ackley",
-        dim=2,
-        random_seed=42,
-        noise=False,
-    )
-    constraints = exp_test.get_all_constraints()
-    if constraints["ic_generator"]:
-        initial_conditions = constraints["ic_generator"](
-            None,
-            exp_test.bounds,
-            10,
-        )
-        print(initial_conditions)
-    else:
-        print("No initial condition generator available.")

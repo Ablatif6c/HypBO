@@ -36,13 +36,15 @@ class BO:
 
         # Data
         self.queue = deque()
-        self.train_x: Optional[torch.Tensor] = None
-        self.train_y: Optional[torch.Tensor] = None
-        self.train_iteration: Optional[torch.Tensor] = None
+        self.train_x = torch.tensor([], **tkwargs)
+        self.train_y = torch.tensor([], **tkwargs)
+        self.train_iteration = torch.tensor(
+            [], dtype=torch.long, device=tkwargs["device"]
+        )
         self.best_sample = {p: None for p in pbounds.keys()}
         self.best_sample[self.target_feature] = -np.inf
 
-        # Models
+        # Model
         self.model = Model(
             "Global",
             pbounds,
@@ -78,7 +80,7 @@ class BO:
         return batch
 
     def update_model(self):
-        if self.train_x is None or self.train_y is None:
+        if self.train_x.numel() == 0 or self.train_y.numel() == 0:
             return
         self.model.update(self.train_x, self.train_y)
 
@@ -114,26 +116,24 @@ class BO:
 
     def probe(self, x_batch: List[Tuple[torch.Tensor, str]]):
         y_batch = self.experiment(x_batch)
-        self.train_x = (
-            torch.cat([self.train_x, x_batch], dim=0)
-            if self.train_x is not None
-            else x_batch
+
+        # Append inputs and outputs to training data
+        self.train_x = torch.cat([self.train_x, x_batch], dim=0)
+        self.train_y = torch.cat([self.train_y, y_batch], dim=0)
+
+        # Update iteration count for each sample
+        if self.train_iteration.numel() > 0:
+            new_val = self.train_iteration[-1] + 1
+        else:
+            new_val = 1
+
+        new_iterations = torch.full(
+            (x_batch.shape[0],),
+            new_val,
+            dtype=torch.long,
+            device=tkwargs["device"],
         )
-        self.train_y = (
-            torch.cat([self.train_y, y_batch], dim=0)
-            if self.train_y is not None
-            else y_batch
-        )
-        self.train_iteration = (
-            torch.cat(
-                [
-                    self.train_iteration,
-                    torch.full((x_batch.shape[0],), self.train_iteration[-1] + 1),
-                ]
-            )
-            if self.train_iteration is not None
-            else torch.full((x_batch.shape[0],), 1)
-        )
+        self.train_iteration = torch.cat([self.train_iteration, new_iterations])
 
         # Log the batch data
         features = dict(

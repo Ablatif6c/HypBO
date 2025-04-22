@@ -32,7 +32,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     experiment_name = args.experiment
-    for random_seed in range(1):
+    for random_seed in range(5):
         print(
             f"------------------ Running experiment {experiment_name} with seed {random_seed}"
         )
@@ -60,8 +60,8 @@ if __name__ == "__main__":
         ).create_hypotheses()
 
         for hypothesis in hypotheses:
-            if hypothesis["name"] == "Good":
-                continue
+            # if hypothesis["name"] == "Good":
+            #     continue
             hypbo.add_hypothesis(
                 name=hypothesis["name"],
                 pbounds=hypothesis["pbounds"],
@@ -76,7 +76,6 @@ if __name__ == "__main__":
             Path("data")
             / "new_version"
             / "hypbo"
-            / "mixed"
             / f"{experiment_name}_{experiment.dim}"
             / f"{experiment_name}_s{random_seed}.csv"
         )
